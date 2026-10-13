@@ -1,0 +1,14 @@
+UseTab: ForIndentation
+TabWidth: 2
+IndentWidth: 2
+
+ColumnLimit: 120
+
+IndentCaseLabels: true
+
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: None
+
+PointerAlignment: Right
+
+AlignArrayOfStructures: Left
