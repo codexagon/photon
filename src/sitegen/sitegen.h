@@ -2,6 +2,7 @@
 #define SITEGEN_H
 
 #include "memory/arena.h"
+#include "parser/parser.h"
 #include "util/slice.h"
 
 struct page;
@@ -9,7 +10,7 @@ struct section;
 
 typedef struct page {
 	Slice name;
-	Slice metadata;
+	Metadata *metadata;
 	struct section *parent;
 } Page;
 
@@ -19,8 +20,8 @@ typedef struct page {
 typedef struct section {
 	Slice path;
 	struct section *parent;
-	struct section **children;
-	Page **pages;
+	struct section *children[SECTION_CHILDREN_CAP];
+	Page *pages[SECTION_PAGE_CAP];
 	int childrenLen;
 	int pagesLen;
 } Section;

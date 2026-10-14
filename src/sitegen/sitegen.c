@@ -9,7 +9,7 @@
 Page *pageCreate(Arena *arena, Section *parent) {
 	Page *page = arenaAlloc(arena, sizeof(Page));
 	page->name = sliceMake(NULL, 0);
-	page->metadata = sliceMake(NULL, 0);
+	page->metadata = NULL;
 	page->parent = parent;
 	return page;
 }
@@ -23,18 +23,10 @@ Section *sectionCreate(Arena *arena, Section *parent) {
 	section->path = sliceMake(NULL, 0);
 
 	section->childrenLen = 0;
-	section->children = arenaAlloc(arena, SECTION_CHILDREN_CAP * sizeof(Section *));
-	if (!section->children) {
-		emitError("failed to create section children array");
-		return NULL;
-	}
+	memset(section->children, 0, SECTION_CHILDREN_CAP * sizeof(Section *));
 
 	section->pagesLen = 0;
-	section->pages = arenaAlloc(arena, SECTION_PAGE_CAP * sizeof(Page *));
-	if (!section->pages) {
-		emitError("failed to create section pages array");
-		return NULL;
-	}
+	memset(section->pages, 0, SECTION_PAGE_CAP * sizeof(Page *));
 
 	section->parent = parent;
 	return section;
