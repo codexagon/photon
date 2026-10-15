@@ -22,7 +22,20 @@ int main(void) {
 		return 1;
 	}
 
-	const char *file = "---\nhello: world\nnever gonna: give you up\nnever gonna: let you down\n---";
+	FILE *mdfile = fopen("test.md", "r");
+	if (!mdfile) {
+		emitError("io", "couldn't open markdown file");
+		return 2;
+	}
+
+	fseek(mdfile, 0, SEEK_END);
+	size_t fsize = ftell(mdfile);
+	rewind(mdfile);
+
+	char file[fsize + 1];
+	file[fsize] = 0;
+
+	fread(file, fsize, 1, mdfile);
 
 	Metadata *m = parseMetadata(arenaPageParse, file);
 	if (!m) {

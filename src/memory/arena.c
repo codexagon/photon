@@ -31,7 +31,7 @@ Arena *arenaCreate(size_t reserveSize) {
 
 	void *block = mmap(NULL, reserveSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (block == MAP_FAILED) {
-		emitError("mmap failed, couldn't create arena\n");
+		emitError("arena", "mmap failed, couldn't create arena\n");
 		return NULL;
 	}
 
@@ -45,13 +45,13 @@ Arena *arenaCreate(size_t reserveSize) {
 
 void *arenaAlloc(Arena *arena, size_t size) {
 	if (!arena || size == 0) {
-		emitError("invalid size or arena passed");
+		emitError("arena", "invalid size or arena passed");
 		return NULL;
 	}
 
 	size_t newOffset = arena->offset + size;
 	if (newOffset > arena->reserved) {
-		emitError("out of memory");
+		emitError("arena", "out of memory");
 		return NULL;
 	}
 
@@ -65,7 +65,7 @@ void *arenaAlloc(Arena *arena, size_t size) {
 		void *commitStart = arena->base + arena->committed;
 
 		if (mprotect(commitStart, commitSize, PROT_READ | PROT_WRITE) != 0) {
-			emitError("memory commit failed");
+			emitError("arena", "memory commit failed");
 			return NULL;
 		}
 

@@ -4,7 +4,7 @@
 #include "memory/arena.h"
 #include "util/slice.h"
 
-#define METADATA_CAP 4
+#define METADATA_CAP 8
 
 typedef struct metadata {
 	Slice keys[METADATA_CAP];

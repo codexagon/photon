@@ -17,7 +17,7 @@ Page *pageCreate(Arena *arena, Section *parent) {
 Section *sectionCreate(Arena *arena, Section *parent) {
 	Section *section = arenaAlloc(arena, sizeof(Section));
 	if (!section) {
-		emitError("failed to create section");
+		emitError("sitegen", "failed to create section");
 		return NULL;
 	}
 	section->path = sliceMake(NULL, 0);
@@ -48,7 +48,7 @@ void sectionFree(Section *section) {
 
 bool sectionAddPage(Section *section, Page *new) {
 	if (section->pagesLen >= SECTION_PAGE_CAP) {
-		emitError("exceeded section page limit");
+		emitError("sitegen", "exceeded section page limit");
 		return false;
 	}
 
@@ -58,7 +58,7 @@ bool sectionAddPage(Section *section, Page *new) {
 
 bool sectionAddSection(Section *section, Section *new) {
 	if (section->childrenLen >= SECTION_CHILDREN_CAP) {
-		emitError("exceeded section children limit");
+		emitError("sitegen", "exceeded section children limit");
 		return false;
 	}
 
@@ -69,7 +69,7 @@ bool sectionAddSection(Section *section, Section *new) {
 bool generateRecursive(Arena *arena, Section *root, const char *path) {
 	DIR *cdir = opendir(path);
 	if (!cdir) {
-		emitError("failed to open directory");
+		emitError("sitegen", "failed to open directory");
 		return false;
 	}
 
@@ -93,7 +93,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path) {
 				Page *newPage = pageCreate(arena, root);
 				if (!sectionAddPage(root, newPage)) {
 					pageFree(newPage);
-					emitError("couldn't add page");
+					emitError("sitegen", "couldn't add page");
 					return false;
 				}
 				newPage->name = sliceMake(name, l - 3);
@@ -108,7 +108,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path) {
 				Section *newSection = sectionCreate(arena, root);
 				if (!sectionAddSection(root, newSection)) {
 					sectionFree(newSection);
-					emitError("couldn't add section");
+					emitError("sitegen", "couldn't add section");
 					return false;
 				}
 
@@ -132,7 +132,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path) {
 Section *generateSiteIR(Arena *arena, const char *path) {
 	Section *root = sectionCreate(arena, NULL);
 	if (!generateRecursive(arena, root, path)) {
-		emitError("couldn't generate site IR");
+		emitError("sitegen", "couldn't generate site IR");
 		return NULL;
 	}
 	return root;
