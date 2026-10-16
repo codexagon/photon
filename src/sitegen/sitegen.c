@@ -1,15 +1,20 @@
 #include <dirent.h>
-#include <stdlib.h>
 #include <sys/stat.h>
 
 #include "common.h"
 #include "sitegen.h"
 #include "util/slice.h"
+#include "util/util.h"
 
 Page *pageCreate(Arena *arena, Section *parent) {
 	Page *page = arenaAlloc(arena, sizeof(Page));
+	if (!page) {
+		emitError("sitegen", "failed to create page");
+		return NULL;
+	}
 	page->name = sliceMake(NULL, 0);
 	page->metadata = NULL;
+	page->content = NULL;
 	page->parent = parent;
 	return page;
 }
@@ -82,13 +87,23 @@ bool generateRecursive(Arena *arena, Section *root, const char *path) {
 		int pl = strlen(path);
 		int l = strlen(entry->d_name);
 
+		// store full path + current file/dir name, use for both cases
+		char *fullName = arenaAlloc(arena, (pl + l + 2) * sizeof(char));
+		if (!fullName) {
+			emitError("sitegen", "couldn't allocate full path string");
+			return false;
+		}
+
+		strcpy(fullName, path);
+		strcat(fullName, entry->d_name);
+
 		switch (entry->d_type) {
 			case DT_REG: {
-				char *name = arenaAlloc(arena, (l - 2) * sizeof(char));
-				if (!name) {
+				char *file = readFile(arena, fullName);
+				if (!file) {
+					emitError("sitegen", "couldn't read file");
 					return false;
 				}
-				strncpy(name, entry->d_name, l - 3);
 
 				Page *newPage = pageCreate(arena, root);
 				if (!sectionAddPage(root, newPage)) {
@@ -96,15 +111,14 @@ bool generateRecursive(Arena *arena, Section *root, const char *path) {
 					emitError("sitegen", "couldn't add page");
 					return false;
 				}
-				newPage->name = sliceMake(name, l - 3);
+				char *nameStart = strrchr(fullName, '/') + 1;
+				newPage->name = sliceMake(nameStart, l - 3);
+
+				newPage->metadata = parseMetadata(arena, file);
+				newPage->content = tokenizeBlocks(arena, file);
 				break;
 			}
 			case DT_DIR: {
-				char *pathName = arenaAlloc(arena, (pl + l + 2) * sizeof(char));
-				if (!pathName) {
-					return false;
-				}
-
 				Section *newSection = sectionCreate(arena, root);
 				if (!sectionAddSection(root, newSection)) {
 					sectionFree(newSection);
@@ -112,13 +126,14 @@ bool generateRecursive(Arena *arena, Section *root, const char *path) {
 					return false;
 				}
 
-				strcpy(pathName, path);
-				strcat(pathName, entry->d_name);
-				strcat(pathName, "/");
+				char path[128] = {0};
+				strcpy(path, fullName);
+				strcat(path, "/");
+				newSection->path = sliceMake(fullName, pl + l + 1);
 
-				newSection->path = sliceMake(pathName, pl + l + 1);
-
-				generateRecursive(arena, newSection, pathName);
+				if (!generateRecursive(arena, newSection, path)) {
+					return false;
+				}
 				break;
 			}
 		}
@@ -139,23 +154,23 @@ Section *generateSiteIR(Arena *arena, const char *path) {
 }
 
 // for testing
-void displaySiteIR(Section *root, int depth) {
+void displaySiteIR(Section *root) {
 	for (int i = 0; i < root->pagesLen; i++) {
-		for (int j = 0; j < depth; j++) {
-			printf("    ");
-		}
-		printf("[page ");
+		printf("-----\n[page ");
 		slicePrint(root->pages[i]->name);
 		printf("]\n");
+		printf("\nMetadata:\n");
+		metadataPrint(root->pages[i]->metadata);
+		printf("\nToken list:\n");
+		for (Token *t = root->pages[i]->content->head; t != NULL; t = t->next) {
+			tokenPrint(t);
+		}
 	}
 
 	for (int i = 0; i < root->childrenLen; i++) {
-		for (int j = 0; j < depth; j++) {
-			printf("    ");
-		}
 		printf("[");
 		slicePrint(root->children[i]->path);
 		printf("]\n");
-		displaySiteIR(root->children[i], depth + 1);
+		displaySiteIR(root->children[i]);
 	}
 }
