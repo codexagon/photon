@@ -49,14 +49,16 @@ void *arenaAlloc(Arena *arena, size_t size) {
 		return NULL;
 	}
 
+	// align allocation end to an 8-byte boundary so the next one is aligned
 	size_t newOffset = arena->offset + size;
+	newOffset = (size_t)alignForward(newOffset, 8);
 	if (newOffset > arena->reserved) {
 		emitError("arena", "out of memory");
 		return NULL;
 	}
 
 	if (newOffset > arena->committed) {
-		size_t commitTarget = alignForward(newOffset, arena->pageSize);
+		size_t commitTarget = (size_t)alignForward(newOffset, arena->pageSize);
 		if (commitTarget > arena->reserved) {
 			commitTarget = arena->reserved;
 		}
