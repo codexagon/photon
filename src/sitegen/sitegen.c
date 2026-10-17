@@ -6,6 +6,8 @@
 #include "util/slice.h"
 #include "util/util.h"
 
+#include "render/render.h"
+
 Page *pageCreate(Arena *arena, Section *parent) {
 	Page *page = arenaAlloc(arena, sizeof(Page));
 	if (!page) {
@@ -154,23 +156,25 @@ Section *generateSiteIR(Arena *arena, const char *path) {
 }
 
 // for testing
-void displaySiteIR(Section *root) {
+void displaySiteIR(Arena *arena, Section *root) {
 	for (int i = 0; i < root->pagesLen; i++) {
-		printf("-----\n[page ");
+		printf("----------\n[page ");
 		slicePrint(root->pages[i]->name);
 		printf("]\n");
-		printf("\nMetadata:\n");
-		metadataPrint(root->pages[i]->metadata);
-		printf("\nToken list:\n");
-		for (Token *t = root->pages[i]->content->head; t != NULL; t = t->next) {
-			tokenPrint(t);
+
+		char *rendered = mdToHTML(arena, root->pages[i]->content);
+		if (!rendered) {
+			emitError("render", "couldn't render HTML");
+			return;
 		}
+		printf("\nRendered HTML:\n%s\n", rendered);
+		printf("----------\n");
 	}
 
 	for (int i = 0; i < root->childrenLen; i++) {
 		printf("[");
 		slicePrint(root->children[i]->path);
 		printf("]\n");
-		displaySiteIR(root->children[i]);
+		displaySiteIR(arena, root->children[i]);
 	}
 }
