@@ -36,6 +36,7 @@ bool sectionAddPage(Section *section, Page *new);
 bool sectionAddSection(Section *section, Section *new);
 
 Section *generateSiteIR(Arena *arena, const char *path);
-void displaySiteIR(Arena *arena, Section *root);
+
+void generateFinalSite(Arena *arena, Section *root);
 
 #endif

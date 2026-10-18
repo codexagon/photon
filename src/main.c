@@ -15,7 +15,13 @@ int main(void) {
 		return 2;
 	}
 
-	displaySiteIR(arena, root);
+	Arena *arenaPage = arenaCreate(1024 * 1024 * 1024);
+	if (!arenaPage) {
+		emitError("main", "couldn't create arena");
+		return 1;
+	}
+
+	generateFinalSite(arenaPage, root);
 
 	arenaRelease(arena);
 	return 0;

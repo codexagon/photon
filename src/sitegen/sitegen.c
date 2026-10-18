@@ -2,12 +2,10 @@
 #include <sys/stat.h>
 
 #include "common.h"
+#include "render/template.h"
 #include "sitegen.h"
 #include "util/slice.h"
 #include "util/util.h"
-
-#include "render/render.h"
-#include "render/template.h"
 
 Page *pageCreate(Arena *arena, Section *parent) {
 	Page *page = arenaAlloc(arena, sizeof(Page));
@@ -74,7 +72,8 @@ bool sectionAddSection(Section *section, Section *new) {
 	return true;
 }
 
-bool generateRecursive(Arena *arena, Section *root, const char *path) {
+// builds site IR and generates destination dir structure too
+bool generateRecursive(Arena *arena, Section *root, const char *path, const char *destPath) {
 	DIR *cdir = opendir(path);
 	if (!cdir) {
 		emitError("sitegen", "failed to open directory");
@@ -119,6 +118,21 @@ bool generateRecursive(Arena *arena, Section *root, const char *path) {
 
 				newPage->metadata = parseMetadata(arena, file);
 				newPage->content = tokenizeBlocks(arena, file);
+
+				// create the dest dir for this file if its name isn't root.md
+				if (!sliceEqual(newPage->name, sliceMake("root", 4))) {
+					int n = newPage->name.len + strlen(destPath) + 1;
+					char destDir[n];
+					for (int i = 0; i < n; i++) {
+						destDir[i] = '\0';
+					}
+					strcat(destDir, destPath);
+					strncat(destDir, newPage->name.start, newPage->name.len);
+					if (mkdir(destDir, 0755) == -1) {
+						emitError("generation", "couldn't create dest directory");
+						return NULL;
+					}
+				}
 				break;
 			}
 			case DT_DIR: {
@@ -134,7 +148,21 @@ bool generateRecursive(Arena *arena, Section *root, const char *path) {
 				strcat(path, "/");
 				newSection->path = sliceMake(fullName, pl + l + 1);
 
-				if (!generateRecursive(arena, newSection, path)) {
+				// create the dest dir for this dir
+				char *name = strrchr(fullName, '/') + 1;
+				int n = strlen(destPath) + strlen(name) + 1;
+				char destDir[n];
+				for (int i = 0; i < n; i++) {
+					destDir[i] = '\0';
+				}
+				strcat(destDir, destPath);
+				strcat(destDir, name);
+				strcat(destDir, "/");
+				if (mkdir(destDir, 0755) == -1) {
+					emitError("generation", "couldn't create dest directory");
+					return NULL;
+				}
+				if (!generateRecursive(arena, newSection, path, destDir)) {
 					return false;
 				}
 				break;
@@ -149,15 +177,20 @@ bool generateRecursive(Arena *arena, Section *root, const char *path) {
 
 Section *generateSiteIR(Arena *arena, const char *path) {
 	Section *root = sectionCreate(arena, NULL);
-	if (!generateRecursive(arena, root, path)) {
+	const char *destPath = "dest/";
+	if (mkdir(destPath, 0755) == -1) {
+		emitError("generation", "couldn't create dest directory");
+		return NULL;
+	}
+
+	if (!generateRecursive(arena, root, path, destPath)) {
 		emitError("sitegen", "couldn't generate site IR");
 		return NULL;
 	}
 	return root;
 }
 
-// for testing
-void displaySiteIR(Arena *arena, Section *root) {
+void generateFinalSite(Arena *arena, Section *root) {
 	for (int i = 0; i < root->pagesLen; i++) {
 		printf("----------\n[page ");
 		slicePrint(root->pages[i]->name);
@@ -170,12 +203,13 @@ void displaySiteIR(Arena *arena, Section *root) {
 		}
 		printf("\nFinal file:\n%s\n", final);
 		printf("----------\n");
+		arenaFree(arena);
 	}
 
 	for (int i = 0; i < root->childrenLen; i++) {
 		printf("[");
 		slicePrint(root->children[i]->path);
 		printf("]\n");
-		displaySiteIR(arena, root->children[i]);
+		generateFinalSite(arena, root->children[i]);
 	}
 }
