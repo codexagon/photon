@@ -143,9 +143,6 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 					return false;
 				}
 
-				char path[128] = {0};
-				strcpy(path, fullName);
-				strcat(path, "/");
 				newSection->path = sliceMake(fullName, pl + l + 1);
 
 				// create the dest dir for this dir
@@ -162,6 +159,10 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 					emitError("generation", "couldn't create dest directory");
 					return NULL;
 				}
+
+				char path[128] = {0};
+				strcpy(path, fullName);
+				strcat(path, "/");
 				if (!generateRecursive(arena, newSection, path, destDir)) {
 					return false;
 				}
@@ -177,6 +178,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 
 Section *generateSiteIR(Arena *arena, const char *path) {
 	Section *root = sectionCreate(arena, NULL);
+	root->path = sliceMake("content", 7);
 	const char *destPath = "dest/";
 	if (mkdir(destPath, 0755) == -1) {
 		emitError("generation", "couldn't create dest directory");
@@ -190,26 +192,67 @@ Section *generateSiteIR(Arena *arena, const char *path) {
 	return root;
 }
 
+bool getDestFilePath(char *dest, char *src) {
+	char *start = strchr(src, '/') + 1;
+	char *name = strrchr(src, '/') + 1;
+
+	if (!start || !name) {
+		return false;
+	}
+
+	// assumes dest is zeroed out initially
+	strcat(dest, "dest/");
+	int idx = strlen("dest/");
+	char *s = start;
+	while (s < name) {
+		dest[idx++] = *s++;
+	}
+
+	if (strcmp(name, "root") != 0) {
+		strcat(dest, name);
+		strcat(dest, "/");
+	}
+
+	strcat(dest, "index.html");
+	return true;
+}
+
 void generateFinalSite(Arena *arena, Section *root) {
 	for (int i = 0; i < root->pagesLen; i++) {
-		printf("----------\n[page ");
-		slicePrint(root->pages[i]->name);
-		printf("]\n");
+		char src[128] = {0};
+		strcpy(src, root->pages[i]->parent->path.start);
+		strcat(src, "/");
+		strncat(src, root->pages[i]->name.start, root->pages[i]->name.len);
+
+		char dest[128] = {0};
+		if (!getDestFilePath(dest, src)) {
+			emitError("generation", "couldn't get destination filepath");
+			return;
+		}
+
+		printf("Generating %s\n", dest);
 
 		char *final = fillTemplate(arena, root->pages[i]);
 		if (!final) {
 			emitError("template", "couldn't render output");
 			return;
 		}
-		printf("\nFinal file:\n%s\n", final);
-		printf("----------\n");
+
+		FILE *destFile = fopen(dest, "w");
+		if (!destFile) {
+			emitError("generation", "couldn't create dest file");
+			return;
+		}
+
+		if (fwrite(final, strlen(final), 1, destFile) != 1) {
+			emitError("generation", "couldn't write dest file");
+			return;
+		}
+		fclose(destFile);
 		arenaFree(arena);
 	}
 
 	for (int i = 0; i < root->childrenLen; i++) {
-		printf("[");
-		slicePrint(root->children[i]->path);
-		printf("]\n");
 		generateFinalSite(arena, root->children[i]);
 	}
 }

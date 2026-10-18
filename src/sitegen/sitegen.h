@@ -37,6 +37,7 @@ bool sectionAddSection(Section *section, Section *new);
 
 Section *generateSiteIR(Arena *arena, const char *path);
 
+bool getDestFilePath(char *dest, char *src);
 void generateFinalSite(Arena *arena, Section *root);
 
 #endif
