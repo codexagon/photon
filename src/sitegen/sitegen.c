@@ -7,6 +7,7 @@
 #include "util/util.h"
 
 #include "render/render.h"
+#include "render/template.h"
 
 Page *pageCreate(Arena *arena, Section *parent) {
 	Page *page = arenaAlloc(arena, sizeof(Page));
@@ -162,12 +163,12 @@ void displaySiteIR(Arena *arena, Section *root) {
 		slicePrint(root->pages[i]->name);
 		printf("]\n");
 
-		char *rendered = mdToHTML(arena, root->pages[i]->content);
-		if (!rendered) {
-			emitError("render", "couldn't render HTML");
+		char *final = fillTemplate(arena, root->pages[i]);
+		if (!final) {
+			emitError("template", "couldn't render output");
 			return;
 		}
-		printf("\nRendered HTML:\n%s\n", rendered);
+		printf("\nFinal file:\n%s\n", final);
 		printf("----------\n");
 	}
 

@@ -12,12 +12,17 @@ typedef struct slice {
 	size_t len;
 } Slice;
 
+#define SLICE_NULL (Slice){.start = NULL, .len = 0}
+
 #define sliceMake(buf, l)                                                                                              \
 	(Slice) {                                                                                                            \
 		.start = ((const char *)buf), .len = ((size_t)l)                                                                   \
 	}
 
-#define sliceEqual(a, b) ((a).len == (b).len) && (memcmp((a).start, (b).start, (a).len) == 0)
+#define sliceEqual(a, b)                                                                                               \
+	(((a).start && (b).start) && ((a).len == (b).len) && (memcmp((a).start, (b).start, (a).len) == 0))
+
+#define sliceEmpty(s) ((s).start == NULL)
 
 #define slicePrint(s) printf("%.*s", (int)((s).len), (s).start)
 
