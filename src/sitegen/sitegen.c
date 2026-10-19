@@ -78,6 +78,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 	DIR *cdir = opendir(path);
 	if (!cdir) {
 		emitError("sitegen", "failed to open directory");
+		closedir(cdir);
 		return false;
 	}
 
@@ -91,10 +92,11 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 		int l = strlen(entry->d_name);
 
 		// store full path + current file/dir name, use for both cases
-		int fullNameSize = (pl + l + 2) * sizeof(char);
+		int fullNameSize = snprintf(NULL, 0, "%s%s", path, entry->d_name) + 1;
 		char *fullName = arenaAlloc(arena, fullNameSize);
 		if (!fullName) {
 			emitError("sitegen", "couldn't allocate full path string");
+			closedir(cdir);
 			return false;
 		}
 
@@ -105,15 +107,23 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 				char *file = readFile(arena, fullName);
 				if (!file) {
 					emitError("sitegen", "couldn't read file");
+					closedir(cdir);
 					return false;
 				}
 
 				Page *newPage = pageCreate(arena, root);
 				if (!sectionAddPage(root, newPage)) {
 					emitError("sitegen", "couldn't add page");
+					closedir(cdir);
 					return false;
 				}
+
 				char *nameStart = strrchr(fullName, '/') + 1;
+				if (!nameStart) {
+					emitError("sitegen", "couldn't find last '/'");
+					closedir(cdir);
+					return false;
+				}
 				newPage->name = sliceMake(nameStart, l - 3);
 
 				newPage->metadata = parseMetadata(arena, file);
@@ -121,17 +131,14 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 
 				// create the dest dir for this file if its name isn't root.md
 				if (!sliceEqual(newPage->name, sliceMake("root", 4))) {
-					int n = newPage->name.len + strlen(destPath) + 1;
+					int n = snprintf(NULL, 0, "%s%.*s", destPath, (int)newPage->name.len, newPage->name.start) + 1;
 					char destDir[n];
-					for (int i = 0; i < n; i++) {
-						destDir[i] = '\0';
-					}
-
 					snprintf(destDir, n, "%s%.*s", destPath, (int)newPage->name.len, newPage->name.start);
 
 					if (!createDir(destDir)) {
 						emitError("generation", "couldn't create dest directory");
-						return NULL;
+						closedir(cdir);
+						return false;
 					}
 				}
 				break;
@@ -140,6 +147,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 				Section *newSection = sectionCreate(arena, root);
 				if (!sectionAddSection(root, newSection)) {
 					emitError("sitegen", "couldn't add section");
+					closedir(cdir);
 					return false;
 				}
 
@@ -147,21 +155,21 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 
 				// create the dest dir for this dir
 				char *name = strrchr(fullName, '/') + 1;
-				int n = strlen(destPath) + strlen(name) + 2;
+				int n = snprintf(NULL, 0, "%s%s/", destPath, name) + 1;
 				char destDir[n];
-				for (int i = 0; i < n; i++) {
-					destDir[i] = '\0';
-				}
-
 				snprintf(destDir, n, "%s%s/", destPath, name);
+
 				if (!createDir(destDir)) {
 					emitError("generation", "couldn't create dest directory");
-					return NULL;
+					closedir(cdir);
+					return false;
 				}
 
-				char path[128] = {0};
+				n = snprintf(NULL, 0, "%s/", fullName) + 1;
+				char path[n];
 				snprintf(path, sizeof(path), "%s/", fullName);
 				if (!generateRecursive(arena, newSection, path, destDir)) {
+					closedir(cdir);
 					return false;
 				}
 				break;
@@ -219,7 +227,8 @@ void generateFinalSite(Arena *arena, Section *root) {
 	for (int i = 0; i < root->pagesLen; i++) {
 		Page *curPage = root->pages[i];
 
-		char src[128] = {0};
+		int n = snprintf(NULL, 0, "%s/%.*s", curPage->parent->path.start, (int)curPage->name.len, curPage->name.start) + 1;
+		char src[n];
 		snprintf(src, sizeof(src), "%s/%.*s", curPage->parent->path.start, (int)curPage->name.len, curPage->name.start);
 
 		char dest[128] = {0};

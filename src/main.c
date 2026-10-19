@@ -23,6 +23,7 @@ int main(void) {
 
 	generateFinalSite(arenaPage, root);
 
+	arenaRelease(arenaPage);
 	arenaRelease(arena);
 	return 0;
 }

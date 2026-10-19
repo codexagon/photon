@@ -22,29 +22,30 @@ int getRenderedBlockLen(Token *token) {
 }
 
 void renderBlock(Token *token, char *output) {
+	int l = getRenderedBlockLen(token) + 1;
+	char out[l];
 	switch (token->type) {
 		case TKN_HEADING: {
-			int l = token->heading.text.len + strlen("<h1></h1>\n");
-			snprintf(output, l, "<h%i>%.*s</h%i>\n", token->heading.level, (int)token->heading.text.len,
+			snprintf(out, l, "<h%i>%.*s</h%i>\n", token->heading.level, (int)token->heading.text.len,
 			         token->heading.text.start, token->heading.level);
 			break;
 		}
 		case TKN_PARAGRAPH: {
-			int l = token->paragraph.len + strlen("<p></p>\n");
-			snprintf(output, l, "<p>%.*s</p>\n", (int)token->paragraph.len, token->paragraph.start);
+			snprintf(out, l, "<p>%.*s</p>\n", (int)token->paragraph.len, token->paragraph.start);
 			break;
 		}
 		case TKN_CODE: {
-			int l = token->code.lang.len + token->code.text.len + strlen("<pre><code class=\"language-\">\n</code></pre>\n");
-			snprintf(output, l, "<pre><code class=\"language-%.*s\">\n%.*s</code></pre>\n", (int)token->code.lang.len,
+			snprintf(out, l, "<pre><code class=\"language-%.*s\">\n%.*s</code></pre>\n", (int)token->code.lang.len,
 			         token->code.lang.start, (int)token->code.text.len, token->code.text.start);
 			break;
 		}
 		default: {
 			emitWarning("render", "unidentified token type encountered, skipping");
-			break;
+			return;
 		}
 	}
+
+	strncat(output, out, l);
 }
 
 char *mdToHTML(Arena *arena, TokenList *tlist) {
