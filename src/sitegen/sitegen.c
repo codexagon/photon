@@ -1,4 +1,5 @@
 #include <dirent.h>
+#include <errno.h>
 #include <sys/stat.h>
 
 #include "common.h"
@@ -72,6 +73,20 @@ bool sectionAddSection(Section *section, Section *new) {
 	return true;
 }
 
+// handle EEXIST error separately so that we don't have to remove dest dir everytime
+bool createDir(const char *path) {
+	if (mkdir(path, 0755) == 0) {
+		return true;
+	}
+
+	if (errno != EEXIST) {
+		return false;
+	}
+
+	struct stat st;
+	return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
+}
+
 // builds site IR and generates destination dir structure too
 bool generateRecursive(Arena *arena, Section *root, const char *path, const char *destPath) {
 	DIR *cdir = opendir(path);
@@ -128,7 +143,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 					}
 					strcat(destDir, destPath);
 					strncat(destDir, newPage->name.start, newPage->name.len);
-					if (mkdir(destDir, 0755) == -1) {
+					if (!createDir(destDir)) {
 						emitError("generation", "couldn't create dest directory");
 						return NULL;
 					}
@@ -155,7 +170,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 				strcat(destDir, destPath);
 				strcat(destDir, name);
 				strcat(destDir, "/");
-				if (mkdir(destDir, 0755) == -1) {
+				if (!createDir(destDir)) {
 					emitError("generation", "couldn't create dest directory");
 					return NULL;
 				}
@@ -180,7 +195,7 @@ Section *generateSiteIR(Arena *arena, const char *path) {
 	Section *root = sectionCreate(arena, NULL);
 	root->path = sliceMake("content", 7);
 	const char *destPath = "dest/";
-	if (mkdir(destPath, 0755) == -1) {
+	if (!createDir(destPath)) {
 		emitError("generation", "couldn't create dest directory");
 		return NULL;
 	}
