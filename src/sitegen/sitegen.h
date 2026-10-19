@@ -28,10 +28,8 @@ typedef struct section {
 } Section;
 
 Page *pageCreate(Arena *arena, Section *parent);
-#define pageFree(page) free(page)
 
 Section *sectionCreate(Arena *arena, Section *parent);
-void sectionFree(Section *section);
 bool sectionAddPage(Section *section, Page *new);
 bool sectionAddSection(Section *section, Section *new);
 

@@ -39,20 +39,6 @@ Section *sectionCreate(Arena *arena, Section *parent) {
 	return section;
 }
 
-void sectionFree(Section *section) {
-	for (int i = 0; i < section->pagesLen; i++) {
-		pageFree(section->pages[i]);
-		section->pages[i] = NULL;
-	}
-
-	for (int i = 0; i < section->childrenLen; i++) {
-		sectionFree(section->children[i]);
-		section->children[i] = NULL;
-	}
-
-	free(section);
-}
-
 bool sectionAddPage(Section *section, Page *new) {
 	if (section->pagesLen >= SECTION_PAGE_CAP) {
 		emitError("sitegen", "exceeded section page limit");
@@ -105,14 +91,14 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 		int l = strlen(entry->d_name);
 
 		// store full path + current file/dir name, use for both cases
-		char *fullName = arenaAlloc(arena, (pl + l + 2) * sizeof(char));
+		int fullNameSize = (pl + l + 2) * sizeof(char);
+		char *fullName = arenaAlloc(arena, fullNameSize);
 		if (!fullName) {
 			emitError("sitegen", "couldn't allocate full path string");
 			return false;
 		}
 
-		strcpy(fullName, path);
-		strcat(fullName, entry->d_name);
+		snprintf(fullName, fullNameSize, "%s%s", path, entry->d_name);
 
 		switch (entry->d_type) {
 			case DT_REG: {
@@ -124,7 +110,6 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 
 				Page *newPage = pageCreate(arena, root);
 				if (!sectionAddPage(root, newPage)) {
-					pageFree(newPage);
 					emitError("sitegen", "couldn't add page");
 					return false;
 				}
@@ -141,8 +126,9 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 					for (int i = 0; i < n; i++) {
 						destDir[i] = '\0';
 					}
-					strcat(destDir, destPath);
-					strncat(destDir, newPage->name.start, newPage->name.len);
+
+					snprintf(destDir, n, "%s%.*s", destPath, (int)newPage->name.len, newPage->name.start);
+
 					if (!createDir(destDir)) {
 						emitError("generation", "couldn't create dest directory");
 						return NULL;
@@ -153,7 +139,6 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 			case DT_DIR: {
 				Section *newSection = sectionCreate(arena, root);
 				if (!sectionAddSection(root, newSection)) {
-					sectionFree(newSection);
 					emitError("sitegen", "couldn't add section");
 					return false;
 				}
@@ -162,22 +147,20 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 
 				// create the dest dir for this dir
 				char *name = strrchr(fullName, '/') + 1;
-				int n = strlen(destPath) + strlen(name) + 1;
+				int n = strlen(destPath) + strlen(name) + 2;
 				char destDir[n];
 				for (int i = 0; i < n; i++) {
 					destDir[i] = '\0';
 				}
-				strcat(destDir, destPath);
-				strcat(destDir, name);
-				strcat(destDir, "/");
+
+				snprintf(destDir, n, "%s%s/", destPath, name);
 				if (!createDir(destDir)) {
 					emitError("generation", "couldn't create dest directory");
 					return NULL;
 				}
 
 				char path[128] = {0};
-				strcpy(path, fullName);
-				strcat(path, "/");
+				snprintf(path, sizeof(path), "%s/", fullName);
 				if (!generateRecursive(arena, newSection, path, destDir)) {
 					return false;
 				}
@@ -234,10 +217,10 @@ bool getDestFilePath(char *dest, char *src) {
 
 void generateFinalSite(Arena *arena, Section *root) {
 	for (int i = 0; i < root->pagesLen; i++) {
+		Page *curPage = root->pages[i];
+
 		char src[128] = {0};
-		strcpy(src, root->pages[i]->parent->path.start);
-		strcat(src, "/");
-		strncat(src, root->pages[i]->name.start, root->pages[i]->name.len);
+		snprintf(src, sizeof(src), "%s/%.*s", curPage->parent->path.start, (int)curPage->name.len, curPage->name.start);
 
 		char dest[128] = {0};
 		if (!getDestFilePath(dest, src)) {
@@ -253,6 +236,7 @@ void generateFinalSite(Arena *arena, Section *root) {
 			return;
 		}
 
+		// write rendered files to disk
 		FILE *destFile = fopen(dest, "w");
 		if (!destFile) {
 			emitError("generation", "couldn't create dest file");
@@ -263,6 +247,7 @@ void generateFinalSite(Arena *arena, Section *root) {
 			emitError("generation", "couldn't write dest file");
 			return;
 		}
+
 		fclose(destFile);
 		arenaFree(arena);
 	}

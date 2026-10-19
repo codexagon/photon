@@ -58,12 +58,12 @@ char *fillTemplate(Arena *arena, Page *page) {
 	if (sliceEmpty(template)) {
 		return NULL;
 	}
-	char templatePath[strlen("templates/.txt") + template.len + 1];
-	memset(templatePath, 0, strlen("templates/.txt") + template.len + 1);
 
-	strcpy(templatePath, "templates/");
-	strncat(templatePath, template.start, template.len);
-	strcat(templatePath, ".txt");
+	int n = strlen("templates/.txt") + template.len + 1;
+	char templatePath[n];
+	memset(templatePath, 0, n);
+
+	snprintf(templatePath, n, "templates/%.*s.txt", (int)template.len, template.start);
 
 	char *templateFile = readFile(arena, templatePath);
 	if (!templateFile) {

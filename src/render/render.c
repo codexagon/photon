@@ -24,37 +24,20 @@ int getRenderedBlockLen(Token *token) {
 void renderBlock(Token *token, char *output) {
 	switch (token->type) {
 		case TKN_HEADING: {
-			switch (token->heading.level) {
-				case 1: strcat(output, "<h1>"); break;
-				case 2: strcat(output, "<h2>"); break;
-				case 3: strcat(output, "<h3>"); break;
-				case 4: strcat(output, "<h4>"); break;
-				case 5: strcat(output, "<h5>"); break;
-				case 6: strcat(output, "<h6>"); break;
-			}
-			strncat(output, token->heading.text.start, token->heading.text.len);
-			switch (token->heading.level) {
-				case 1: strcat(output, "</h1>\n"); break;
-				case 2: strcat(output, "</h2>\n"); break;
-				case 3: strcat(output, "</h3>\n"); break;
-				case 4: strcat(output, "</h4>\n"); break;
-				case 5: strcat(output, "</h5>\n"); break;
-				case 6: strcat(output, "</h6>\n"); break;
-			}
+			int l = token->heading.text.len + strlen("<h1></h1>\n");
+			snprintf(output, l, "<h%i>%.*s</h%i>\n", token->heading.level, (int)token->heading.text.len,
+			         token->heading.text.start, token->heading.level);
 			break;
 		}
 		case TKN_PARAGRAPH: {
-			strcat(output, "<p>");
-			strncat(output, token->paragraph.start, token->paragraph.len);
-			strcat(output, "</p>\n");
+			int l = token->paragraph.len + strlen("<p></p>\n");
+			snprintf(output, l, "<p>%.*s</p>\n", (int)token->paragraph.len, token->paragraph.start);
 			break;
 		}
 		case TKN_CODE: {
-			strcat(output, "<pre><code class=\"language-");
-			strncat(output, token->code.lang.start, token->code.lang.len);
-			strcat(output, "\">\n");
-			strncat(output, token->code.text.start, token->code.text.len);
-			strcat(output, "</code></pre>\n");
+			int l = token->code.lang.len + token->code.text.len + strlen("<pre><code class=\"language-\">\n</code></pre>\n");
+			snprintf(output, l, "<pre><code class=\"language-%.*s\">\n%.*s</code></pre>\n", (int)token->code.lang.len,
+			         token->code.lang.start, (int)token->code.text.len, token->code.text.start);
 			break;
 		}
 		default: {
