@@ -1,8 +1,8 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include "block/block.h"
 #include "memory/arena.h"
-#include "token.h"
 #include "util/slice.h"
 
 // metadata parsing
@@ -20,11 +20,11 @@ void metadataPrint(Metadata *m);
 Metadata *parseMetadata(Arena *arena, char *file);
 char *jumpOverMetadata(char *file);
 
-// file tokenization
-TokenList *tokenizeBlocks(Arena *arena, char *file);
+// file "blockization" or whatever it's called
+BlockList *makeBlocks(Arena *arena, char *file);
 
-Token *tokenizeHeading(Arena *arena, char **f);
-Token *tokenizeCodeBlock(Arena *arena, char **f);
-Token *tokenizeParagraph(Arena *arena, char **f);
+Block *makeHeadingBlock(Arena *arena, char **f);
+Block *makeCodeBlock(Arena *arena, char **f);
+Block *makeParagraphBlock(Arena *arena, char **f);
 
 #endif

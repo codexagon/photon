@@ -1,5 +1,5 @@
 #include "template.h"
-#include "render.h"
+#include "render/render.h"
 #include "util/util.h"
 
 Slice getMetadataValue(Page *page, char *key, size_t keyLen) {

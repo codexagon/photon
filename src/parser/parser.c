@@ -106,10 +106,10 @@ char *jumpOverMetadata(char *file) {
 	return metadataEnd + 4;
 }
 
-TokenList *tokenizeBlocks(Arena *arena, char *file) {
-	TokenList *list = arenaAlloc(arena, sizeof(TokenList));
+BlockList *makeBlocks(Arena *arena, char *file) {
+	BlockList *list = arenaAlloc(arena, sizeof(BlockList));
 	if (!list) {
-		emitError("parser", "couldn't create token list");
+		emitError("parser", "couldn't create block list");
 		return NULL;
 	}
 
@@ -121,21 +121,21 @@ TokenList *tokenizeBlocks(Arena *arena, char *file) {
 	}
 
 	while (*f != '\0') {
-		Token *token = NULL;
+		Block *block = NULL;
 		if (*f == '#') {
-			token = tokenizeHeading(arena, &f);
+			block = makeHeadingBlock(arena, &f);
 		} else if (strncmp(f, "```", 3) == 0) {
-			token = tokenizeCodeBlock(arena, &f);
+			block = makeCodeBlock(arena, &f);
 		} else {
-			token = tokenizeParagraph(arena, &f);
+			block = makeParagraphBlock(arena, &f);
 		}
 
-		if (!token) {
+		if (!block) {
 			emitError("parser", "couldn't tokenize");
 			return NULL;
 		}
 
-		tokenAdd(list, token);
+		blockAdd(list, block);
 		while (*f == '\n') {
 			f++;
 		}
@@ -144,8 +144,8 @@ TokenList *tokenizeBlocks(Arena *arena, char *file) {
 	return list;
 }
 
-Token *tokenizeHeading(Arena *arena, char **f) {
-	Token *t = tokenMake(arena, TKN_HEADING);
+Block *makeHeadingBlock(Arena *arena, char **f) {
+	Block *t = blockMake(arena, BLK_HEADING);
 	if (!t) {
 		return NULL;
 	}
@@ -176,8 +176,8 @@ Token *tokenizeHeading(Arena *arena, char **f) {
 	return t;
 }
 
-Token *tokenizeCodeBlock(Arena *arena, char **f) {
-	Token *t = tokenMake(arena, TKN_CODE);
+Block *makeCodeBlock(Arena *arena, char **f) {
+	Block *t = blockMake(arena, BLK_CODE);
 	if (!t) {
 		return NULL;
 	}
@@ -217,8 +217,8 @@ Token *tokenizeCodeBlock(Arena *arena, char **f) {
 	return t;
 }
 
-Token *tokenizeParagraph(Arena *arena, char **f) {
-	Token *t = tokenMake(arena, TKN_PARAGRAPH);
+Block *makeParagraphBlock(Arena *arena, char **f) {
+	Block *t = blockMake(arena, BLK_PARAGRAPH);
 	if (!t) {
 		return NULL;
 	}

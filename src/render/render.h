@@ -2,9 +2,9 @@
 #define RENDER_H
 
 #include "memory/arena.h"
-#include "parser/token.h"
+#include "parser/block/block.h"
 
-void renderBlock(Token *token, char *output);
-char *mdToHTML(Arena *arena, TokenList *tlist);
+void renderBlock(Block *block, char *output);
+char *mdToHTML(Arena *arena, BlockList *blist);
 
 #endif

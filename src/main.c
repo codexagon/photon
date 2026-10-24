@@ -22,14 +22,21 @@ void emitWarning(const char *module, const char *fmt, ...) {
 	va_end(args);
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
+	if (argc < 1) {
+		emitError("usage", "%s [dest-dir]", argv[0]);
+		return -1;
+	}
+
+	char *destDirName = argc >= 2 ? argv[1] : "dest/";
+
 	Arena *arena = arenaCreate(1024 * 1024 * 1024); // 1 GB
 	if (!arena) {
 		emitError("main", "couldn't create arena");
 		return 1;
 	}
 
-	Section *root = generateSiteIR(arena, "content/");
+	Section *root = generateSiteIR(arena, "content/", destDirName);
 	if (!root) {
 		emitError("main", "couldn't generate site IR");
 		return 2;
@@ -41,7 +48,7 @@ int main(void) {
 		return 1;
 	}
 
-	generateFinalSite(arenaPage, root);
+	generateFinalSite(arenaPage, root, destDirName);
 
 	arenaRelease(arenaPage);
 	arenaRelease(arena);

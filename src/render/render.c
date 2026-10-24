@@ -1,19 +1,18 @@
 #include "render.h"
-#include "parser/token.h"
 
-int getRenderedBlockLen(Token *token) {
+int getRenderedBlockLen(Block *block) {
 	int len = -1;
-	switch (token->type) {
-		case TKN_HEADING: {
-			len = token->heading.text.len + strlen("<h1></h1>\n");
+	switch (block->type) {
+		case BLK_HEADING: {
+			len = block->heading.text.len + strlen("<h1></h1>\n");
 			break;
 		}
-		case TKN_PARAGRAPH: {
-			len = token->paragraph.len + strlen("<p></p>\n");
+		case BLK_PARAGRAPH: {
+			len = block->paragraph.len + strlen("<p></p>\n");
 			break;
 		}
-		case TKN_CODE: {
-			len = token->code.text.len + token->code.lang.len + strlen("<pre><code class=\"language-\">\n</code></pre>\n");
+		case BLK_CODE: {
+			len = block->code.text.len + block->code.lang.len + strlen("<pre><code class=\"language-\">\n</code></pre>\n");
 			break;
 		}
 	}
@@ -21,26 +20,26 @@ int getRenderedBlockLen(Token *token) {
 	return len;
 }
 
-void renderBlock(Token *token, char *output) {
-	int l = getRenderedBlockLen(token) + 1;
+void renderBlock(Block *block, char *output) {
+	int l = getRenderedBlockLen(block) + 1;
 	char out[l];
-	switch (token->type) {
-		case TKN_HEADING: {
-			snprintf(out, l, "<h%i>%.*s</h%i>\n", token->heading.level, (int)token->heading.text.len,
-			         token->heading.text.start, token->heading.level);
+	switch (block->type) {
+		case BLK_HEADING: {
+			snprintf(out, l, "<h%i>%.*s</h%i>\n", block->heading.level, (int)block->heading.text.len,
+			         block->heading.text.start, block->heading.level);
 			break;
 		}
-		case TKN_PARAGRAPH: {
-			snprintf(out, l, "<p>%.*s</p>\n", (int)token->paragraph.len, token->paragraph.start);
+		case BLK_PARAGRAPH: {
+			snprintf(out, l, "<p>%.*s</p>\n", (int)block->paragraph.len, block->paragraph.start);
 			break;
 		}
-		case TKN_CODE: {
-			snprintf(out, l, "<pre><code class=\"language-%.*s\">\n%.*s</code></pre>\n", (int)token->code.lang.len,
-			         token->code.lang.start, (int)token->code.text.len, token->code.text.start);
+		case BLK_CODE: {
+			snprintf(out, l, "<pre><code class=\"language-%.*s\">\n%.*s</code></pre>\n", (int)block->code.lang.len,
+			         block->code.lang.start, (int)block->code.text.len, block->code.text.start);
 			break;
 		}
 		default: {
-			emitWarning("render", "unidentified token type encountered, skipping");
+			emitWarning("render", "unidentified block type encountered, skipping");
 			return;
 		}
 	}
@@ -48,10 +47,10 @@ void renderBlock(Token *token, char *output) {
 	strncat(output, out, l);
 }
 
-char *mdToHTML(Arena *arena, TokenList *tlist) {
+char *mdToHTML(Arena *arena, BlockList *blist) {
 	int totalLen = 0;
-	for (Token *t = tlist->head; t != NULL; t = t->next) {
-		int l = getRenderedBlockLen(t);
+	for (Block *b = blist->head; b != NULL; b = b->next) {
+		int l = getRenderedBlockLen(b);
 		if (l == -1) {
 			emitError("render", "couldn't determine block length");
 			return NULL;
@@ -64,10 +63,9 @@ char *mdToHTML(Arena *arena, TokenList *tlist) {
 		emitError("render", "couldn't allocate output string");
 		return NULL;
 	}
-	output[totalLen] = 0;
 
-	for (Token *t = tlist->head; t != NULL; t = t->next) {
-		renderBlock(t, output);
+	for (Block *b = blist->head; b != NULL; b = b->next) {
+		renderBlock(b, output);
 	}
 
 	return output;

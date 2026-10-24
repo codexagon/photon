@@ -3,8 +3,8 @@
 #include <sys/stat.h>
 
 #include "common.h"
-#include "render/template.h"
 #include "sitegen.h"
+#include "template/template.h"
 #include "util/slice.h"
 #include "util/util.h"
 
@@ -127,7 +127,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 				newPage->name = sliceMake(nameStart, l - 3);
 
 				newPage->metadata = parseMetadata(arena, file);
-				newPage->content = tokenizeBlocks(arena, file);
+				newPage->content = makeBlocks(arena, file);
 
 				// create the dest dir for this file if its name isn't root.md
 				if (!sliceEqual(newPage->name, sliceMake("root", 4))) {
@@ -182,23 +182,22 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 	return true;
 }
 
-Section *generateSiteIR(Arena *arena, const char *path) {
+Section *generateSiteIR(Arena *arena, const char *path, char *destDirName) {
 	Section *root = sectionCreate(arena, NULL);
 	root->path = sliceMake("content", 7);
-	const char *destPath = "dest/";
-	if (!createDir(destPath)) {
+	if (!createDir(destDirName)) {
 		emitError("generation", "couldn't create dest directory");
 		return NULL;
 	}
 
-	if (!generateRecursive(arena, root, path, destPath)) {
+	if (!generateRecursive(arena, root, path, destDirName)) {
 		emitError("sitegen", "couldn't generate site IR");
 		return NULL;
 	}
 	return root;
 }
 
-bool getDestFilePath(char *dest, char *src) {
+bool getDestFilePath(char *dest, char *src, char *destDirName) {
 	char *start = strchr(src, '/') + 1;
 	char *name = strrchr(src, '/') + 1;
 
@@ -207,8 +206,8 @@ bool getDestFilePath(char *dest, char *src) {
 	}
 
 	// assumes dest is zeroed out initially
-	strcat(dest, "dest/");
-	int idx = strlen("dest/");
+	strcat(dest, destDirName);
+	int idx = strlen(destDirName);
 	char *s = start;
 	while (s < name) {
 		dest[idx++] = *s++;
@@ -223,7 +222,7 @@ bool getDestFilePath(char *dest, char *src) {
 	return true;
 }
 
-void generateFinalSite(Arena *arena, Section *root) {
+void generateFinalSite(Arena *arena, Section *root, char *destDirName) {
 	for (int i = 0; i < root->pagesLen; i++) {
 		Page *curPage = root->pages[i];
 
@@ -232,7 +231,7 @@ void generateFinalSite(Arena *arena, Section *root) {
 		snprintf(src, sizeof(src), "%s/%.*s", curPage->parent->path.start, (int)curPage->name.len, curPage->name.start);
 
 		char dest[128] = {0};
-		if (!getDestFilePath(dest, src)) {
+		if (!getDestFilePath(dest, src, destDirName)) {
 			emitError("generation", "couldn't get destination filepath");
 			return;
 		}
@@ -262,6 +261,6 @@ void generateFinalSite(Arena *arena, Section *root) {
 	}
 
 	for (int i = 0; i < root->childrenLen; i++) {
-		generateFinalSite(arena, root->children[i]);
+		generateFinalSite(arena, root->children[i], destDirName);
 	}
 }

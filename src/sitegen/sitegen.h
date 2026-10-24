@@ -11,7 +11,7 @@ struct section;
 typedef struct page {
 	Slice name;
 	Metadata *metadata;
-	TokenList *content;
+	BlockList *content;
 	struct section *parent;
 } Page;
 
@@ -33,9 +33,9 @@ Section *sectionCreate(Arena *arena, Section *parent);
 bool sectionAddPage(Section *section, Page *new);
 bool sectionAddSection(Section *section, Section *new);
 
-Section *generateSiteIR(Arena *arena, const char *path);
+Section *generateSiteIR(Arena *arena, const char *path, char *destDirName);
 
-bool getDestFilePath(char *dest, char *src);
-void generateFinalSite(Arena *arena, Section *root);
+bool getDestFilePath(char *dest, char *src, char *destDirName);
+void generateFinalSite(Arena *arena, Section *root, char *destDirName);
 
 #endif
