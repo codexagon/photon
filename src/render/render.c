@@ -15,6 +15,13 @@ int getRenderedBlockLen(Block *block) {
 			len = block->code.text.len + block->code.lang.len + strlen("<pre><code class=\"language-\">\n</code></pre>\n");
 			break;
 		}
+		case BLK_BLOCKQUOTE: {
+			len = strlen("<blockquote>\n\n</blockquote>\n");
+			for (int i = 0; i < block->bquote.count; i++) {
+				len += block->bquote.lines[i].len + 1;
+			}
+			break;
+		}
 	}
 
 	return len;
@@ -23,6 +30,7 @@ int getRenderedBlockLen(Block *block) {
 void renderBlock(Block *block, char *output) {
 	int l = getRenderedBlockLen(block) + 1;
 	char out[l];
+	out[0] = '\0';
 	switch (block->type) {
 		case BLK_HEADING: {
 			snprintf(out, l, "<h%i>%.*s</h%i>\n", block->heading.level, (int)block->heading.text.len,
@@ -36,6 +44,15 @@ void renderBlock(Block *block, char *output) {
 		case BLK_CODE: {
 			snprintf(out, l, "<pre><code class=\"language-%.*s\">\n%.*s</code></pre>\n", (int)block->code.lang.len,
 			         block->code.lang.start, (int)block->code.text.len, block->code.text.start);
+			break;
+		}
+		case BLK_BLOCKQUOTE: {
+			strcat(out, "<blockquote>\n");
+			for (int i = 0; i < block->bquote.count; i++) {
+				strncat(out, block->bquote.lines[i].start, block->bquote.lines[i].len);
+				strcat(out, " ");
+			}
+			strcat(out, "\n</blockquote>\n");
 			break;
 		}
 		default: {

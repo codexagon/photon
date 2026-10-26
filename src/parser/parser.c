@@ -106,6 +106,13 @@ char *jumpOverMetadata(char *file) {
 	return metadataEnd + 4;
 }
 
+char *skipWhitespace(char *f) {
+	while (strchr(" \r\n\t", *f) != NULL) {
+		f++;
+	}
+	return f;
+}
+
 BlockList *makeBlocks(Arena *arena, char *file) {
 	BlockList *list = arenaAlloc(arena, sizeof(BlockList));
 	if (!list) {
@@ -116,9 +123,7 @@ BlockList *makeBlocks(Arena *arena, char *file) {
 	char *f = jumpOverMetadata(file);
 
 	// skip leading whitespace
-	while (strchr(" \r\n\t", *f) != NULL) {
-		f++;
-	}
+	f = skipWhitespace(f);
 
 	while (*f != '\0') {
 		Block *block = NULL;
@@ -126,6 +131,8 @@ BlockList *makeBlocks(Arena *arena, char *file) {
 			block = makeHeadingBlock(arena, &f);
 		} else if (strncmp(f, "```", 3) == 0) {
 			block = makeCodeBlock(arena, &f);
+		} else if (*f == '>') {
+			block = makeBlockquoteBlock(arena, &f);
 		} else {
 			block = makeParagraphBlock(arena, &f);
 		}
@@ -145,8 +152,8 @@ BlockList *makeBlocks(Arena *arena, char *file) {
 }
 
 Block *makeHeadingBlock(Arena *arena, char **f) {
-	Block *t = blockMake(arena, BLK_HEADING);
-	if (!t) {
+	Block *b = blockMake(arena, BLK_HEADING);
+	if (!b) {
 		return NULL;
 	}
 
@@ -155,7 +162,7 @@ Block *makeHeadingBlock(Arena *arena, char **f) {
 		h++;
 		(*f)++;
 	}
-	t->heading.level = h;
+	b->heading.level = h;
 
 	// ensure space between heading hashes & text
 	if (**f != ' ') {
@@ -172,13 +179,13 @@ Block *makeHeadingBlock(Arena *arena, char **f) {
 	}
 	(*f)++;
 
-	t->heading.text = sliceMake(textStart, textLen);
-	return t;
+	b->heading.text = sliceMake(textStart, textLen);
+	return b;
 }
 
 Block *makeCodeBlock(Arena *arena, char **f) {
-	Block *t = blockMake(arena, BLK_CODE);
-	if (!t) {
+	Block *b = blockMake(arena, BLK_CODE);
+	if (!b) {
 		return NULL;
 	}
 
@@ -194,7 +201,7 @@ Block *makeCodeBlock(Arena *arena, char **f) {
 			(*f)++;
 		}
 	}
-	t->code.lang = sliceMake(langStart, langLen);
+	b->code.lang = sliceMake(langStart, langLen);
 
 	(*f)++;
 
@@ -213,13 +220,13 @@ Block *makeCodeBlock(Arena *arena, char **f) {
 
 	(*f) += 3;
 
-	t->code.text = sliceMake(codeStart, codeLen);
-	return t;
+	b->code.text = sliceMake(codeStart, codeLen);
+	return b;
 }
 
 Block *makeParagraphBlock(Arena *arena, char **f) {
-	Block *t = blockMake(arena, BLK_PARAGRAPH);
-	if (!t) {
+	Block *b = blockMake(arena, BLK_PARAGRAPH);
+	if (!b) {
 		return NULL;
 	}
 
@@ -231,6 +238,37 @@ Block *makeParagraphBlock(Arena *arena, char **f) {
 	}
 	(*f)++;
 
-	t->paragraph = sliceMake(textStart, textLen);
-	return t;
+	b->paragraph = sliceMake(textStart, textLen);
+	return b;
+}
+
+Block *makeBlockquoteBlock(Arena *arena, char **f) {
+	Block *b = blockMake(arena, BLK_BLOCKQUOTE);
+	if (!b) {
+		return NULL;
+	}
+
+	b->bquote.lines = arenaAlloc(arena, 32 * sizeof(Slice));
+	if (!b->bquote.lines) {
+		return NULL;
+	}
+
+	while (**f == '>') {
+		(*f)++; // go past the >
+		*f = skipWhitespace(*f);
+		char *end = strchr(*f, '\n');
+		if (!end) {
+			emitError("parser", "couldn't find end of line in blockquote text");
+			return NULL;
+		}
+
+		size_t len = end - *f;
+		if (b->bquote.count >= 32) {
+			break;
+		}
+		b->bquote.lines[b->bquote.count++] = sliceMake(*f, len);
+		*f += len + 1;
+	}
+
+	return b;
 }

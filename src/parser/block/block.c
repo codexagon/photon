@@ -43,6 +43,7 @@ void blockPrint(Block *t) {
 			printf(", \"");
 			slicePrint(t->code.text);
 			printf("\"]\n");
+			break;
 		}
 		case BLK_BLOCKQUOTE: {
 			printf("[blockquote \"");
@@ -51,6 +52,7 @@ void blockPrint(Block *t) {
 				printf(" ");
 			}
 			printf("\"]\n");
+			break;
 		}
 	}
 }

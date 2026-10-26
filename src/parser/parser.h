@@ -26,5 +26,6 @@ BlockList *makeBlocks(Arena *arena, char *file);
 Block *makeHeadingBlock(Arena *arena, char **f);
 Block *makeCodeBlock(Arena *arena, char **f);
 Block *makeParagraphBlock(Arena *arena, char **f);
+Block *makeBlockquoteBlock(Arena *arena, char **f);
 
 #endif
