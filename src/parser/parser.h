@@ -27,5 +27,7 @@ Block *makeHeadingBlock(Arena *arena, char **f);
 Block *makeCodeBlock(Arena *arena, char **f);
 Block *makeParagraphBlock(Arena *arena, char **f);
 Block *makeBlockquoteBlock(Arena *arena, char **f);
+Block *makeUnorderedListBlock(Arena *arena, char **f);
+Block *makeOrderedListBlock(Arena *arena, char **f);
 
 #endif

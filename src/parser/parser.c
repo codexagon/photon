@@ -133,6 +133,10 @@ BlockList *makeBlocks(Arena *arena, char *file) {
 			block = makeCodeBlock(arena, &f);
 		} else if (*f == '>') {
 			block = makeBlockquoteBlock(arena, &f);
+		} else if (*f == '-') {
+			block = makeUnorderedListBlock(arena, &f);
+		} else if (isdigit(*f)) {
+			block = makeOrderedListBlock(arena, &f);
 		} else {
 			block = makeParagraphBlock(arena, &f);
 		}
@@ -267,6 +271,84 @@ Block *makeBlockquoteBlock(Arena *arena, char **f) {
 			break;
 		}
 		b->bquote.lines[b->bquote.count++] = sliceMake(*f, len);
+		*f += len + 1;
+	}
+
+	return b;
+}
+
+Block *makeUnorderedListBlock(Arena *arena, char **f) {
+	Block *b = blockMake(arena, BLK_UNORDERED_LIST);
+	if (!b) {
+		return NULL;
+	}
+
+	b->list.items = arenaAlloc(arena, 32 * sizeof(Slice));
+	if (!b->list.items) {
+		return NULL;
+	}
+
+	while (**f == '-') {
+		(*f)++; // go past the -
+		if (**f != ' ') {
+			emitError("parser", "expected a space after the '-'");
+			return NULL;
+		}
+		(*f)++;
+		*f = skipWhitespace(*f);
+		char *end = strchr(*f, '\n');
+		if (!end) {
+			emitError("parser", "couldn't find end of line in list item");
+			return NULL;
+		}
+
+		size_t len = end - *f;
+		if (b->list.count >= 32) {
+			break;
+		}
+		b->list.items[b->list.count++] = sliceMake(*f, len);
+		*f += len + 1;
+	}
+
+	return b;
+}
+
+Block *makeOrderedListBlock(Arena *arena, char **f) {
+	Block *b = blockMake(arena, BLK_ORDERED_LIST);
+	if (!b) {
+		return NULL;
+	}
+
+	b->list.items = arenaAlloc(arena, 32 * sizeof(Slice));
+	if (!b->list.items) {
+		return NULL;
+	}
+
+	while (isdigit(**f)) {
+		// go past the number
+		while (**f != '.') {
+			(*f)++;
+		}
+		(*f)++;
+
+		if (**f != ' ') {
+			emitError("parser", "expected a space after list item number");
+			return NULL;
+		}
+		(*f)++;
+
+		*f = skipWhitespace(*f);
+		char *end = strchr(*f, '\n');
+		if (!end) {
+			emitError("parser", "couldn't find end of line in list item");
+			return NULL;
+		}
+
+		size_t len = end - *f;
+		if (b->list.count >= 32) {
+			break;
+		}
+		b->list.items[b->list.count++] = sliceMake(*f, len);
 		*f += len + 1;
 	}
 

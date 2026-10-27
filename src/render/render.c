@@ -22,6 +22,20 @@ int getRenderedBlockLen(Block *block) {
 			}
 			break;
 		}
+		case BLK_UNORDERED_LIST: {
+			len = strlen("<ul>\n</ul>\n") + block->list.count * strlen("<li></li>\n");
+			for (int i = 0; i < block->list.count; i++) {
+				len += block->list.items[i].len;
+			}
+			break;
+		}
+		case BLK_ORDERED_LIST: {
+			len = strlen("<ol>\n</ol>\n") + block->list.count * strlen("<li></li>\n");
+			for (int i = 0; i < block->list.count; i++) {
+				len += block->list.items[i].len;
+			}
+			break;
+		}
 	}
 
 	return len;
@@ -53,6 +67,26 @@ void renderBlock(Block *block, char *output) {
 				strcat(out, " ");
 			}
 			strcat(out, "\n</blockquote>\n");
+			break;
+		}
+		case BLK_UNORDERED_LIST: {
+			strcat(out, "<ul>\n");
+			for (int i = 0; i < block->list.count; i++) {
+				strcat(out, "<li>");
+				strncat(out, block->list.items[i].start, block->list.items[i].len);
+				strcat(out, "</li>\n");
+			}
+			strcat(out, "</ul>\n");
+			break;
+		}
+		case BLK_ORDERED_LIST: {
+			strcat(out, "<ol>\n");
+			for (int i = 0; i < block->list.count; i++) {
+				strcat(out, "<li>");
+				strncat(out, block->list.items[i].start, block->list.items[i].len);
+				strcat(out, "</li>\n");
+			}
+			strcat(out, "</ol>\n");
 			break;
 		}
 		default: {

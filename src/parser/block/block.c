@@ -54,5 +54,25 @@ void blockPrint(Block *t) {
 			printf("\"]\n");
 			break;
 		}
+		case BLK_UNORDERED_LIST: {
+			printf("[ulist \"");
+			for (int i = 0; i < t->list.count; i++) {
+				printf("- ");
+				slicePrint(t->list.items[i]);
+				printf("\n");
+			}
+			printf("\"]\n");
+			break;
+		}
+		case BLK_ORDERED_LIST: {
+			printf("[olist \"");
+			for (int i = 0; i < t->list.count; i++) {
+				printf("%i. ", i + 1);
+				slicePrint(t->list.items[i]);
+				printf("\n");
+			}
+			printf("\"]\n");
+			break;
+		}
 	}
 }

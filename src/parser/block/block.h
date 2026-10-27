@@ -9,6 +9,8 @@ typedef enum blocktype {
 	BLK_PARAGRAPH,
 	BLK_CODE,
 	BLK_BLOCKQUOTE,
+	BLK_UNORDERED_LIST,
+	BLK_ORDERED_LIST,
 } BlockType;
 
 typedef struct block {
@@ -28,6 +30,10 @@ typedef struct block {
 			int count;
 			Slice *lines;
 		} bquote;
+		struct {
+			int count;
+			Slice *items;
+		} list;
 	};
 } Block;
 
