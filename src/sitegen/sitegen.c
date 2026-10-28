@@ -126,8 +126,11 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 				}
 				newPage->name = sliceMake(nameStart, l - 3);
 
-				newPage->metadata = parseMetadata(arena, file);
-				newPage->content = makeBlocks(arena, file);
+				// parse markdown & store the "blockized" file while generating site IR itself
+				if (!parseMarkdown(arena, file, &newPage->metadata, &newPage->content)) {
+					emitError("parser", "couldn't parse file");
+					return false;
+				}
 
 				// create the dest dir for this file if its name isn't root.md
 				if (!sliceEqual(newPage->name, sliceMake("root", 4))) {

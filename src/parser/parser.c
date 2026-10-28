@@ -354,3 +354,19 @@ Block *makeOrderedListBlock(Arena *arena, char **f) {
 
 	return b;
 }
+
+bool parseMarkdown(Arena *arena, char *file, Metadata **metadata, BlockList **blist) {
+	*metadata = parseMetadata(arena, file);
+	if (!(*metadata)) {
+		emitError("parser(metadata)", "couldn't parse metadata");
+		return false;
+	}
+
+	*blist = makeBlocks(arena, file);
+	if (!(*blist)) {
+		emitError("parser", "couldn't make blocks");
+		return false;
+	}
+
+	return true;
+}

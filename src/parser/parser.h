@@ -30,4 +30,7 @@ Block *makeBlockquoteBlock(Arena *arena, char **f);
 Block *makeUnorderedListBlock(Arena *arena, char **f);
 Block *makeOrderedListBlock(Arena *arena, char **f);
 
+// overall parsing
+bool parseMarkdown(Arena *arena, char *file, Metadata **metadata, BlockList **blist);
+
 #endif
