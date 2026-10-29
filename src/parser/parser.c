@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "parser.h"
+#include "parser/block/block.h"
 
 // for testing
 void metadataPrint(Metadata *m) {
@@ -183,7 +184,7 @@ Block *makeHeadingBlock(Arena *arena, char **f) {
 	}
 	(*f)++;
 
-	b->heading.text = sliceMake(textStart, textLen);
+	b->text = sliceMake(textStart, textLen);
 	return b;
 }
 
@@ -224,7 +225,7 @@ Block *makeCodeBlock(Arena *arena, char **f) {
 
 	(*f) += 3;
 
-	b->code.text = sliceMake(codeStart, codeLen);
+	b->text = sliceMake(codeStart, codeLen);
 	return b;
 }
 
@@ -242,7 +243,7 @@ Block *makeParagraphBlock(Arena *arena, char **f) {
 	}
 	(*f)++;
 
-	b->paragraph = sliceMake(textStart, textLen);
+	b->text = sliceMake(textStart, textLen);
 	return b;
 }
 
@@ -252,8 +253,8 @@ Block *makeBlockquoteBlock(Arena *arena, char **f) {
 		return NULL;
 	}
 
-	b->bquote.lines = arenaAlloc(arena, 32 * sizeof(Slice));
-	if (!b->bquote.lines) {
+	b->collection.items = arenaAlloc(arena, 32 * sizeof(Slice));
+	if (!b->collection.items) {
 		return NULL;
 	}
 
@@ -267,10 +268,10 @@ Block *makeBlockquoteBlock(Arena *arena, char **f) {
 		}
 
 		size_t len = end - *f;
-		if (b->bquote.count >= 32) {
+		if (b->collection.count >= 32) {
 			break;
 		}
-		b->bquote.lines[b->bquote.count++] = sliceMake(*f, len);
+		b->collection.items[b->collection.count++] = sliceMake(*f, len);
 		*f += len + 1;
 	}
 
@@ -283,8 +284,8 @@ Block *makeUnorderedListBlock(Arena *arena, char **f) {
 		return NULL;
 	}
 
-	b->list.items = arenaAlloc(arena, 32 * sizeof(Slice));
-	if (!b->list.items) {
+	b->collection.items = arenaAlloc(arena, 32 * sizeof(Slice));
+	if (!b->collection.items) {
 		return NULL;
 	}
 
@@ -303,10 +304,10 @@ Block *makeUnorderedListBlock(Arena *arena, char **f) {
 		}
 
 		size_t len = end - *f;
-		if (b->list.count >= 32) {
+		if (b->collection.count >= 32) {
 			break;
 		}
-		b->list.items[b->list.count++] = sliceMake(*f, len);
+		b->collection.items[b->collection.count++] = sliceMake(*f, len);
 		*f += len + 1;
 	}
 
@@ -319,8 +320,8 @@ Block *makeOrderedListBlock(Arena *arena, char **f) {
 		return NULL;
 	}
 
-	b->list.items = arenaAlloc(arena, 32 * sizeof(Slice));
-	if (!b->list.items) {
+	b->collection.items = arenaAlloc(arena, 32 * sizeof(Slice));
+	if (!b->collection.items) {
 		return NULL;
 	}
 
@@ -345,10 +346,10 @@ Block *makeOrderedListBlock(Arena *arena, char **f) {
 		}
 
 		size_t len = end - *f;
-		if (b->list.count >= 32) {
+		if (b->collection.count >= 32) {
 			break;
 		}
-		b->list.items[b->list.count++] = sliceMake(*f, len);
+		b->collection.items[b->collection.count++] = sliceMake(*f, len);
 		*f += len + 1;
 	}
 

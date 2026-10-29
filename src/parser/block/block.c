@@ -27,13 +27,13 @@ void blockPrint(Block *t) {
 	switch (t->type) {
 		case BLK_HEADING: {
 			printf("[heading %i \"", t->heading.level);
-			slicePrint(t->heading.text);
+			slicePrint(t->text);
 			printf("\"]\n");
 			break;
 		}
 		case BLK_PARAGRAPH: {
 			printf("[paragraph \"");
-			slicePrint(t->paragraph);
+			slicePrint(t->text);
 			printf("\"]\n");
 			break;
 		}
@@ -41,14 +41,14 @@ void blockPrint(Block *t) {
 			printf("[code ");
 			slicePrint(t->code.lang);
 			printf(", \"");
-			slicePrint(t->code.text);
+			slicePrint(t->text);
 			printf("\"]\n");
 			break;
 		}
 		case BLK_BLOCKQUOTE: {
 			printf("[blockquote \"");
-			for (int i = 0; i < t->bquote.count; i++) {
-				slicePrint(t->bquote.lines[i]);
+			for (int i = 0; i < t->collection.count; i++) {
+				slicePrint(t->collection.items[i]);
 				printf(" ");
 			}
 			printf("\"]\n");
@@ -56,9 +56,9 @@ void blockPrint(Block *t) {
 		}
 		case BLK_UNORDERED_LIST: {
 			printf("[ulist \"");
-			for (int i = 0; i < t->list.count; i++) {
+			for (int i = 0; i < t->collection.count; i++) {
 				printf("- ");
-				slicePrint(t->list.items[i]);
+				slicePrint(t->collection.items[i]);
 				printf("\n");
 			}
 			printf("\"]\n");
@@ -66,9 +66,9 @@ void blockPrint(Block *t) {
 		}
 		case BLK_ORDERED_LIST: {
 			printf("[olist \"");
-			for (int i = 0; i < t->list.count; i++) {
+			for (int i = 0; i < t->collection.count; i++) {
 				printf("%i. ", i + 1);
-				slicePrint(t->list.items[i]);
+				slicePrint(t->collection.items[i]);
 				printf("\n");
 			}
 			printf("\"]\n");

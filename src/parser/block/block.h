@@ -2,6 +2,7 @@
 #define BLOCK_H
 
 #include "memory/arena.h"
+#include "parser/token/token.h"
 #include "util/slice.h"
 
 typedef enum blocktype {
@@ -16,24 +17,20 @@ typedef enum blocktype {
 typedef struct block {
 	BlockType type;
 	struct block *next;
+	TokenList *tokens;
+
+	Slice text; // for heading, paragraph, code
 	union {
 		struct {
 			int level;
-			Slice text;
 		} heading;
-		Slice paragraph;
 		struct {
 			Slice lang;
-			Slice text;
 		} code;
 		struct {
 			int count;
-			Slice *lines;
-		} bquote;
-		struct {
-			int count;
 			Slice *items;
-		} list;
+		} collection;
 	};
 } Block;
 

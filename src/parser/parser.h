@@ -3,6 +3,7 @@
 
 #include "block/block.h"
 #include "memory/arena.h"
+#include "token/token.h"
 #include "util/slice.h"
 
 // metadata parsing

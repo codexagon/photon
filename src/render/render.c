@@ -4,35 +4,35 @@ int getRenderedBlockLen(Block *block) {
 	int len = -1;
 	switch (block->type) {
 		case BLK_HEADING: {
-			len = block->heading.text.len + strlen("<h1></h1>\n");
+			len = block->text.len + strlen("<h1></h1>\n");
 			break;
 		}
 		case BLK_PARAGRAPH: {
-			len = block->paragraph.len + strlen("<p></p>\n");
+			len = block->text.len + strlen("<p></p>\n");
 			break;
 		}
 		case BLK_CODE: {
-			len = block->code.text.len + block->code.lang.len + strlen("<pre><code class=\"language-\">\n</code></pre>\n");
+			len = block->text.len + block->code.lang.len + strlen("<pre><code class=\"language-\">\n</code></pre>\n");
 			break;
 		}
 		case BLK_BLOCKQUOTE: {
 			len = strlen("<blockquote>\n\n</blockquote>\n");
-			for (int i = 0; i < block->bquote.count; i++) {
-				len += block->bquote.lines[i].len + 1;
+			for (int i = 0; i < block->collection.count; i++) {
+				len += block->collection.items[i].len + 1;
 			}
 			break;
 		}
 		case BLK_UNORDERED_LIST: {
-			len = strlen("<ul>\n</ul>\n") + block->list.count * strlen("<li></li>\n");
-			for (int i = 0; i < block->list.count; i++) {
-				len += block->list.items[i].len;
+			len = strlen("<ul>\n</ul>\n") + block->collection.count * strlen("<li></li>\n");
+			for (int i = 0; i < block->collection.count; i++) {
+				len += block->collection.items[i].len;
 			}
 			break;
 		}
 		case BLK_ORDERED_LIST: {
-			len = strlen("<ol>\n</ol>\n") + block->list.count * strlen("<li></li>\n");
-			for (int i = 0; i < block->list.count; i++) {
-				len += block->list.items[i].len;
+			len = strlen("<ol>\n</ol>\n") + block->collection.count * strlen("<li></li>\n");
+			for (int i = 0; i < block->collection.count; i++) {
+				len += block->collection.items[i].len;
 			}
 			break;
 		}
@@ -47,23 +47,23 @@ void renderBlock(Block *block, char *output) {
 	out[0] = '\0';
 	switch (block->type) {
 		case BLK_HEADING: {
-			snprintf(out, l, "<h%i>%.*s</h%i>\n", block->heading.level, (int)block->heading.text.len,
-			         block->heading.text.start, block->heading.level);
+			snprintf(out, l, "<h%i>%.*s</h%i>\n", block->heading.level, (int)block->text.len, block->text.start,
+			         block->heading.level);
 			break;
 		}
 		case BLK_PARAGRAPH: {
-			snprintf(out, l, "<p>%.*s</p>\n", (int)block->paragraph.len, block->paragraph.start);
+			snprintf(out, l, "<p>%.*s</p>\n", (int)block->text.len, block->text.start);
 			break;
 		}
 		case BLK_CODE: {
 			snprintf(out, l, "<pre><code class=\"language-%.*s\">\n%.*s</code></pre>\n", (int)block->code.lang.len,
-			         block->code.lang.start, (int)block->code.text.len, block->code.text.start);
+			         block->code.lang.start, (int)block->text.len, block->text.start);
 			break;
 		}
 		case BLK_BLOCKQUOTE: {
 			strcat(out, "<blockquote>\n");
-			for (int i = 0; i < block->bquote.count; i++) {
-				strncat(out, block->bquote.lines[i].start, block->bquote.lines[i].len);
+			for (int i = 0; i < block->collection.count; i++) {
+				strncat(out, block->collection.items[i].start, block->collection.items[i].len);
 				strcat(out, " ");
 			}
 			strcat(out, "\n</blockquote>\n");
@@ -71,9 +71,9 @@ void renderBlock(Block *block, char *output) {
 		}
 		case BLK_UNORDERED_LIST: {
 			strcat(out, "<ul>\n");
-			for (int i = 0; i < block->list.count; i++) {
+			for (int i = 0; i < block->collection.count; i++) {
 				strcat(out, "<li>");
-				strncat(out, block->list.items[i].start, block->list.items[i].len);
+				strncat(out, block->collection.items[i].start, block->collection.items[i].len);
 				strcat(out, "</li>\n");
 			}
 			strcat(out, "</ul>\n");
@@ -81,9 +81,9 @@ void renderBlock(Block *block, char *output) {
 		}
 		case BLK_ORDERED_LIST: {
 			strcat(out, "<ol>\n");
-			for (int i = 0; i < block->list.count; i++) {
+			for (int i = 0; i < block->collection.count; i++) {
 				strcat(out, "<li>");
-				strncat(out, block->list.items[i].start, block->list.items[i].len);
+				strncat(out, block->collection.items[i].start, block->collection.items[i].len);
 				strcat(out, "</li>\n");
 			}
 			strcat(out, "</ol>\n");
