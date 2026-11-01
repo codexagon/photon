@@ -38,7 +38,6 @@ int main(int argc, char *argv[]) {
 
 	Section *root = generateSiteIR(arena, "content/", destDirName);
 	if (!root) {
-		emitError("main", "couldn't generate site IR");
 		return 2;
 	}
 

@@ -4,7 +4,7 @@
 #include "block/block.h"
 #include "memory/arena.h"
 #include "token/token.h"
-#include "util/slice.h"
+#include "util/str.h"
 
 // metadata parsing
 
@@ -18,20 +18,20 @@ typedef struct metadata {
 
 void metadataPrint(Metadata *m);
 
-Metadata *parseMetadata(Arena *arena, char *file);
-char *jumpOverMetadata(char *file);
+Metadata *parseMetadata(Arena *arena, String *f);
+bool jumpOverMetadata(String *f);
 
 // file "blockization" or whatever it's called
-BlockList *makeBlocks(Arena *arena, char *file);
+BlockList *makeBlocks(Arena *arena, String *f);
 
-Block *makeHeadingBlock(Arena *arena, char **f);
-Block *makeCodeBlock(Arena *arena, char **f);
-Block *makeParagraphBlock(Arena *arena, char **f);
-Block *makeBlockquoteBlock(Arena *arena, char **f);
-Block *makeUnorderedListBlock(Arena *arena, char **f);
-Block *makeOrderedListBlock(Arena *arena, char **f);
+Block *makeHeadingBlock(Arena *arena, String *f);
+Block *makeCodeBlock(Arena *arena, String *f);
+Block *makeParagraphBlock(Arena *arena, String *f);
+Block *makeBlockquoteBlock(Arena *arena, String *f);
+Block *makeUnorderedListBlock(Arena *arena, String *f);
+Block *makeOrderedListBlock(Arena *arena, String *f);
 
 // overall parsing
-bool parseMarkdown(Arena *arena, char *file, Metadata **metadata, BlockList **blist);
+bool parseMarkdown(Arena *arena, String *f, Metadata **metadata, BlockList **blist);
 
 #endif

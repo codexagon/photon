@@ -1,24 +1,30 @@
+#include <stdarg.h>
+
+#include "parser/block/block.h"
 #include "render.h"
 
 int getRenderedBlockLen(Block *block) {
 	int len = -1;
 	switch (block->type) {
 		case BLK_HEADING: {
-			len = block->text.len + strlen("<h1></h1>\n");
+			len = strlen("<h1></h1>\n");
+			len += block->text.len;
 			break;
 		}
 		case BLK_PARAGRAPH: {
-			len = block->text.len + strlen("<p></p>\n");
+			len = strlen("<p></p>\n");
+			len += block->text.len;
 			break;
 		}
 		case BLK_CODE: {
-			len = block->text.len + block->code.lang.len + strlen("<pre><code class=\"language-\">\n</code></pre>\n");
+			len = strlen("<pre><code class=\"language-\">\n</code></pre>\n");
+			len += block->text.len;
 			break;
 		}
 		case BLK_BLOCKQUOTE: {
 			len = strlen("<blockquote>\n\n</blockquote>\n");
 			for (int i = 0; i < block->collection.count; i++) {
-				len += block->collection.items[i].len + 1;
+				len += block->collection.items[i].len;
 			}
 			break;
 		}
@@ -38,67 +44,78 @@ int getRenderedBlockLen(Block *block) {
 		}
 	}
 
+	if (len == -1) {
+		emitError("render", "unidentified block encountered");
+		return -1;
+	}
+
 	return len;
 }
 
-void renderBlock(Block *block, char *output) {
-	int l = getRenderedBlockLen(block) + 1;
-	char out[l];
-	out[0] = '\0';
+int renderBlock(Arena *arena, Block *block, String *output) {
+	int written = 0;
+
 	switch (block->type) {
 		case BLK_HEADING: {
-			snprintf(out, l, "<h%i>%.*s</h%i>\n", block->heading.level, (int)block->text.len, block->text.start,
-			         block->heading.level);
+			written += stringAppend(arena, output, "<h%i>", block->heading.level);
+			written += stringAppend(arena, output, "%.*s", (int)block->text.len, block->text.start);
+			written += stringAppend(arena, output, "</h%i>\n", block->heading.level);
 			break;
 		}
 		case BLK_PARAGRAPH: {
-			snprintf(out, l, "<p>%.*s</p>\n", (int)block->text.len, block->text.start);
+			written += stringAppend(arena, output, "<p>");
+			written += stringAppend(arena, output, "%.*s", (int)block->text.len, block->text.start);
+			written += stringAppend(arena, output, "</p>\n");
 			break;
 		}
 		case BLK_CODE: {
-			snprintf(out, l, "<pre><code class=\"language-%.*s\">\n%.*s</code></pre>\n", (int)block->code.lang.len,
-			         block->code.lang.start, (int)block->text.len, block->text.start);
+			written += stringAppend(arena, output, "<pre><code class=\"language-%.*s\">\n", (int)block->code.lang.len,
+			                        block->code.lang.start);
+			written += stringAppend(arena, output, "%.*s", (int)block->text.len, block->text.start);
+			written += stringAppend(arena, output, "</code></pre>\n");
 			break;
 		}
 		case BLK_BLOCKQUOTE: {
-			strcat(out, "<blockquote>\n");
+			written += stringAppend(arena, output, "<blockquote>\n");
 			for (int i = 0; i < block->collection.count; i++) {
-				strncat(out, block->collection.items[i].start, block->collection.items[i].len);
-				strcat(out, " ");
+				written +=
+				    stringAppend(arena, output, "%.*s ", (int)block->collection.items[i].len, block->collection.items[i].start);
 			}
-			strcat(out, "\n</blockquote>\n");
+			written += stringAppend(arena, output, "</blockquote>\n");
 			break;
 		}
 		case BLK_UNORDERED_LIST: {
-			strcat(out, "<ul>\n");
+			written += stringAppend(arena, output, "<ul>\n");
 			for (int i = 0; i < block->collection.count; i++) {
-				strcat(out, "<li>");
-				strncat(out, block->collection.items[i].start, block->collection.items[i].len);
-				strcat(out, "</li>\n");
+				written += stringAppend(arena, output, "<li>");
+				written +=
+				    stringAppend(arena, output, "%.*s", (int)block->collection.items[i].len, block->collection.items[i].start);
+				written += stringAppend(arena, output, "</li>\n");
 			}
-			strcat(out, "</ul>\n");
+			written += stringAppend(arena, output, "</ul>\n");
 			break;
 		}
 		case BLK_ORDERED_LIST: {
-			strcat(out, "<ol>\n");
+			written += stringAppend(arena, output, "<ol>\n");
 			for (int i = 0; i < block->collection.count; i++) {
-				strcat(out, "<li>");
-				strncat(out, block->collection.items[i].start, block->collection.items[i].len);
-				strcat(out, "</li>\n");
+				written += stringAppend(arena, output, "<li>");
+				written +=
+				    stringAppend(arena, output, "%.*s", (int)block->collection.items[i].len, block->collection.items[i].start);
+				written += stringAppend(arena, output, "</li>\n");
 			}
-			strcat(out, "</ol>\n");
+			written += stringAppend(arena, output, "</ol>\n");
 			break;
 		}
 		default: {
-			emitWarning("render", "unidentified block type encountered, skipping");
-			return;
+			emitError("render", "unidentified block type encountered, aborting");
+			return -1;
 		}
 	}
 
-	strncat(output, out, l);
+	return written;
 }
 
-char *mdToHTML(Arena *arena, BlockList *blist) {
+String *mdToHTML(Arena *arena, BlockList *blist) {
 	int totalLen = 0;
 	for (Block *b = blist->head; b != NULL; b = b->next) {
 		int l = getRenderedBlockLen(b);
@@ -109,14 +126,17 @@ char *mdToHTML(Arena *arena, BlockList *blist) {
 		totalLen += l;
 	}
 
-	char *output = arenaAlloc(arena, (totalLen + 1) * sizeof(char));
+	String *output = stringMake(arena, NULL, totalLen);
 	if (!output) {
 		emitError("render", "couldn't allocate output string");
 		return NULL;
 	}
 
 	for (Block *b = blist->head; b != NULL; b = b->next) {
-		renderBlock(b, output);
+		if (!renderBlock(arena, b, output)) {
+			emitError("render", "couldn't render block");
+			return NULL;
+		}
 	}
 
 	return output;

@@ -3,7 +3,7 @@
 
 #include "memory/arena.h"
 #include "parser/parser.h"
-#include "util/slice.h"
+#include "util/str.h"
 
 struct page;
 struct section;

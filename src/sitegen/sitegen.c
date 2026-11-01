@@ -1,11 +1,8 @@
 #include <dirent.h>
-#include <errno.h>
-#include <sys/stat.h>
 
 #include "common.h"
 #include "sitegen.h"
 #include "template/template.h"
-#include "util/slice.h"
 #include "util/util.h"
 
 Page *pageCreate(Arena *arena, Section *parent) {
@@ -14,7 +11,7 @@ Page *pageCreate(Arena *arena, Section *parent) {
 		emitError("sitegen", "failed to create page");
 		return NULL;
 	}
-	page->name = sliceMake(NULL, 0);
+	page->name = SLICE_NULL;
 	page->metadata = NULL;
 	page->content = NULL;
 	page->parent = parent;
@@ -27,7 +24,7 @@ Section *sectionCreate(Arena *arena, Section *parent) {
 		emitError("sitegen", "failed to create section");
 		return NULL;
 	}
-	section->path = sliceMake(NULL, 0);
+	section->path = SLICE_NULL;
 
 	section->childrenLen = 0;
 	memset(section->children, 0, SECTION_CHILDREN_CAP * sizeof(Section *));
@@ -57,20 +54,6 @@ bool sectionAddSection(Section *section, Section *new) {
 
 	section->children[section->childrenLen++] = new;
 	return true;
-}
-
-// handle EEXIST error separately so that we don't have to remove dest dir everytime
-bool createDir(const char *path) {
-	if (mkdir(path, 0755) == 0) {
-		return true;
-	}
-
-	if (errno != EEXIST) {
-		return false;
-	}
-
-	struct stat st;
-	return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
 }
 
 // builds site IR and generates destination dir structure too
@@ -104,7 +87,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 
 		switch (entry->d_type) {
 			case DT_REG: {
-				char *file = readFile(arena, fullName);
+				String *file = readFile(arena, fullName);
 				if (!file) {
 					emitError("sitegen", "couldn't read file");
 					closedir(cdir);
@@ -241,7 +224,7 @@ void generateFinalSite(Arena *arena, Section *root, char *destDirName) {
 
 		printf("Generating %s\n", dest);
 
-		char *final = fillTemplate(arena, root->pages[i]);
+		String *final = fillTemplate(arena, root->pages[i]);
 		if (!final) {
 			emitError("template", "couldn't render output");
 			return;
@@ -254,7 +237,7 @@ void generateFinalSite(Arena *arena, Section *root, char *destDirName) {
 			return;
 		}
 
-		if (fwrite(final, strlen(final), 1, destFile) != 1) {
+		if (fwrite(final->buf, final->len, 1, destFile) != 1) {
 			emitError("generation", "couldn't write dest file");
 			return;
 		}

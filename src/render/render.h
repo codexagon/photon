@@ -4,7 +4,8 @@
 #include "memory/arena.h"
 #include "parser/block/block.h"
 
-void renderBlock(Block *block, char *output);
-char *mdToHTML(Arena *arena, BlockList *blist);
+int renderBlock(Arena *arena, Block *block, String *output);
+
+String *mdToHTML(Arena *arena, BlockList *blist);
 
 #endif

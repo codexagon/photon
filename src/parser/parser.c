@@ -5,249 +5,143 @@
 #include "parser.h"
 #include "parser/block/block.h"
 
-// for testing
-void metadataPrint(Metadata *m) {
-	for (int i = 0; i < m->len; i++) {
-		slicePrint(m->keys[i]);
-		printf(": ");
-		slicePrint(m->values[i]);
-		printf("\n");
+void skipWhitespace(String *f) {
+	while (strchr(" \r\n\t", f->buf[f->idx]) != NULL) {
+		f->idx++;
 	}
 }
 
-bool parseMetadataLine(Metadata *m, char **f) {
-	int keyLen = 0;
-	char *keyStart = *f;
-	while (**f != ':' && **f != '\n') {
-		keyLen++;
-		(*f)++;
-	}
-	if (**f == '\n') {
-		emitWarning("parser(metadata)", "couldn't find entry delimiter, skipping");
-		return false;
-	}
-
-	while (!isalnum(**f)) {
-		(*f)++;
-	}
-
-	int valueLen = 0;
-	char *valueStart = *f;
-	while (**f != '\n' && **f != '\0') {
-		valueLen++;
-		(*f)++;
-	}
-	if (**f != '\0') {
-		(*f)++;
-	}
-
-	m->keys[m->len] = sliceMake(keyStart, keyLen);
-	m->values[m->len] = sliceMake(valueStart, valueLen);
-	m->len++;
-	return true;
-}
-
-Metadata *parseMetadata(Arena *arena, char *file) {
-	Metadata *m = arenaAlloc(arena, sizeof(Metadata));
-	if (!m) {
-		emitError("parser(metadata)", "couldn't parse file metadata");
-		return NULL;
-	}
-
-	m->len = 0;
-	memset(m->keys, 0, METADATA_CAP * sizeof(Slice));
-	memset(m->values, 0, METADATA_CAP * sizeof(Slice));
-
-	// check if metadata section is present
-	if (strncmp(file, "---", 3) != 0) {
-		emitError("parser(metadata)", "couldn't find metadata section in file");
-		return NULL;
-	}
-
-	// skip to first metadata entry
-	char *f = file;
-	while (!isalpha(*f)) {
-		f++;
-	}
-
-	char *metadataEnd = strstr(f, "---");
-	if (!metadataEnd) {
-		emitError("parser(metadata)", "couldn't find end of metadata section");
-		return NULL;
-	}
-
-	while (f != metadataEnd && *f != '\0') {
-		if (m->len >= METADATA_CAP) {
-			break;
-		}
-
-		parseMetadataLine(m, &f);
-
-		// don't skip over the closing '---'
-		while (!isalnum(*f) && f != metadataEnd) {
-			f++;
-		}
-	}
-
-	return m;
-}
-
-char *jumpOverMetadata(char *file) {
-	if (strncmp(file, "---", 3) != 0) {
-		emitWarning("parser", "metadata not found, no-op");
-		return file;
-	}
-
-	char *metadataEnd = strstr(file + 3, "---");
-	if (!metadataEnd) {
-		emitError("parser", "couldn't find end of metadata section");
-		return NULL;
-	}
-
-	return metadataEnd + 4;
-}
-
-char *skipWhitespace(char *f) {
-	while (strchr(" \r\n\t", *f) != NULL) {
-		f++;
-	}
-	return f;
-}
-
-BlockList *makeBlocks(Arena *arena, char *file) {
+BlockList *makeBlocks(Arena *arena, String *f) {
 	BlockList *list = arenaAlloc(arena, sizeof(BlockList));
 	if (!list) {
 		emitError("parser", "couldn't create block list");
 		return NULL;
 	}
 
-	char *f = jumpOverMetadata(file);
+	jumpOverMetadata(f);
+	skipWhitespace(f);
 
-	// skip leading whitespace
-	f = skipWhitespace(f);
-
-	while (*f != '\0') {
+	while (f->buf[f->idx] != '\0') {
 		Block *block = NULL;
-		if (*f == '#') {
-			block = makeHeadingBlock(arena, &f);
-		} else if (strncmp(f, "```", 3) == 0) {
-			block = makeCodeBlock(arena, &f);
-		} else if (*f == '>') {
-			block = makeBlockquoteBlock(arena, &f);
-		} else if (*f == '-') {
-			block = makeUnorderedListBlock(arena, &f);
-		} else if (isdigit(*f)) {
-			block = makeOrderedListBlock(arena, &f);
+		if (f->buf[f->idx] == '#') {
+			block = makeHeadingBlock(arena, f);
+		} else if (strncmp(f->buf + f->idx, "```", 3) == 0) {
+			block = makeCodeBlock(arena, f);
+		} else if (f->buf[f->idx] == '>') {
+			block = makeBlockquoteBlock(arena, f);
+		} else if (f->buf[f->idx] == '-') {
+			block = makeUnorderedListBlock(arena, f);
+		} else if (isdigit(f->buf[f->idx])) {
+			block = makeOrderedListBlock(arena, f);
 		} else {
-			block = makeParagraphBlock(arena, &f);
+			block = makeParagraphBlock(arena, f);
 		}
 
 		if (!block) {
-			emitError("parser", "couldn't tokenize");
 			return NULL;
 		}
 
 		blockAdd(list, block);
-		while (*f == '\n') {
-			f++;
+		while (f->buf[f->idx] == '\n') {
+			f->idx++;
 		}
 	}
 
 	return list;
 }
 
-Block *makeHeadingBlock(Arena *arena, char **f) {
+Block *makeHeadingBlock(Arena *arena, String *f) {
 	Block *b = blockMake(arena, BLK_HEADING);
 	if (!b) {
 		return NULL;
 	}
 
 	int h = 0;
-	while (**f == '#') {
+	while (f->buf[f->idx] == '#') {
 		h++;
-		(*f)++;
+		f->idx++;
 	}
 	b->heading.level = h;
 
 	// ensure space between heading hashes & text
-	if (**f != ' ') {
-		emitError("parser", "expected space after heading hashes");
+	if (f->buf[f->idx] != ' ') {
+		emitError("parser", "expected space after heading hashes \"%s\"", f->buf + f->idx - 1);
 		return NULL;
 	}
-	(*f)++;
+	f->idx++;
 
-	char *textStart = *f;
+	char *textStart = f->buf + f->idx;
 	int textLen = 0;
-	while (**f != '\n') {
+	while (f->buf[f->idx] != '\n') {
 		textLen++;
-		(*f)++;
+		f->idx++;
 	}
-	(*f)++;
+	f->idx++;
 
 	b->text = sliceMake(textStart, textLen);
 	return b;
 }
 
-Block *makeCodeBlock(Arena *arena, char **f) {
+Block *makeCodeBlock(Arena *arena, String *f) {
 	Block *b = blockMake(arena, BLK_CODE);
 	if (!b) {
 		return NULL;
 	}
 
-	(*f) += 3;
+	f->idx += 3;
 
-	char *langStart = *f;
+	char *langStart = f->buf + f->idx;
 	int langLen = 0;
-	if (**f == '\n') {
+	if (f->buf[f->idx] == '\n') {
 		langStart = NULL;
 	} else {
-		while (**f != '\n') {
+		while (f->buf[f->idx] != '\n') {
 			langLen++;
-			(*f)++;
+			f->idx++;
 		}
 	}
 	b->code.lang = sliceMake(langStart, langLen);
 
-	(*f)++;
+	f->idx++;
 
-	char *codeEnd = strstr(*f, "```");
+	char *codeEnd = strstr(f->buf + f->idx, "```");
 	if (!codeEnd) {
 		emitError("parser", "couldn't find end of code block");
 		return NULL;
 	}
 
-	char *codeStart = *f;
+	char *codeStart = f->buf + f->idx;
 	int codeLen = 0;
-	while (*f != codeEnd) {
+	while (f->buf + f->idx != codeEnd) {
 		codeLen++;
-		(*f)++;
+		f->idx++;
 	}
 
-	(*f) += 3;
+	f->idx += 3;
 
 	b->text = sliceMake(codeStart, codeLen);
 	return b;
 }
 
-Block *makeParagraphBlock(Arena *arena, char **f) {
+Block *makeParagraphBlock(Arena *arena, String *f) {
 	Block *b = blockMake(arena, BLK_PARAGRAPH);
 	if (!b) {
 		return NULL;
 	}
 
-	char *textStart = *f;
+	char *textStart = f->buf + f->idx;
 	int textLen = 0;
-	while (**f != '\n') {
+	while (f->buf[f->idx] != '\n') {
 		textLen++;
-		(*f)++;
+		f->idx++;
 	}
-	(*f)++;
+	f->idx++;
 
 	b->text = sliceMake(textStart, textLen);
 	return b;
 }
 
-Block *makeBlockquoteBlock(Arena *arena, char **f) {
+Block *makeBlockquoteBlock(Arena *arena, String *f) {
 	Block *b = blockMake(arena, BLK_BLOCKQUOTE);
 	if (!b) {
 		return NULL;
@@ -258,27 +152,33 @@ Block *makeBlockquoteBlock(Arena *arena, char **f) {
 		return NULL;
 	}
 
-	while (**f == '>') {
-		(*f)++; // go past the >
-		*f = skipWhitespace(*f);
-		char *end = strchr(*f, '\n');
-		if (!end) {
+	while (f->buf[f->idx] == '>') {
+		f->idx++; // go past the >
+		skipWhitespace(f);
+
+		char *bquoteStart = f->buf + f->idx;
+
+		size_t len = 0;
+		while (f->buf[f->idx] != '\0' && f->buf[f->idx] != '\n') {
+			len++;
+			f->idx++;
+		}
+		if (f->buf[f->idx] == '\0') {
 			emitError("parser", "couldn't find end of line in blockquote text");
 			return NULL;
 		}
 
-		size_t len = end - *f;
 		if (b->collection.count >= 32) {
 			break;
 		}
-		b->collection.items[b->collection.count++] = sliceMake(*f, len);
-		*f += len + 1;
+		b->collection.items[b->collection.count++] = sliceMake(bquoteStart, len);
+		f->idx++;
 	}
 
 	return b;
 }
 
-Block *makeUnorderedListBlock(Arena *arena, char **f) {
+Block *makeUnorderedListBlock(Arena *arena, String *f) {
 	Block *b = blockMake(arena, BLK_UNORDERED_LIST);
 	if (!b) {
 		return NULL;
@@ -289,32 +189,37 @@ Block *makeUnorderedListBlock(Arena *arena, char **f) {
 		return NULL;
 	}
 
-	while (**f == '-') {
-		(*f)++; // go past the -
-		if (**f != ' ') {
+	while (f->buf[f->idx] == '-') {
+		if (f->buf[f->idx + 1] != ' ') {
 			emitError("parser", "expected a space after the '-'");
 			return NULL;
 		}
-		(*f)++;
-		*f = skipWhitespace(*f);
-		char *end = strchr(*f, '\n');
-		if (!end) {
+		f->idx += 2; // go past the - and space
+		skipWhitespace(f);
+
+		char *ulistStart = f->buf + f->idx;
+
+		size_t len = 0;
+		while (f->buf[f->idx] != '\0' && f->buf[f->idx] != '\n') {
+			len++;
+			f->idx++;
+		}
+		if (f->buf[f->idx] == '\0') {
 			emitError("parser", "couldn't find end of line in list item");
 			return NULL;
 		}
 
-		size_t len = end - *f;
 		if (b->collection.count >= 32) {
 			break;
 		}
-		b->collection.items[b->collection.count++] = sliceMake(*f, len);
-		*f += len + 1;
+		b->collection.items[b->collection.count++] = sliceMake(ulistStart, len);
+		f->idx++;
 	}
 
 	return b;
 }
 
-Block *makeOrderedListBlock(Arena *arena, char **f) {
+Block *makeOrderedListBlock(Arena *arena, String *f) {
 	Block *b = blockMake(arena, BLK_ORDERED_LIST);
 	if (!b) {
 		return NULL;
@@ -325,45 +230,49 @@ Block *makeOrderedListBlock(Arena *arena, char **f) {
 		return NULL;
 	}
 
-	while (isdigit(**f)) {
+	while (isdigit(f->buf[f->idx])) {
 		// go past the number
-		while (**f != '.') {
-			(*f)++;
+		while (f->buf[f->idx] != '.') {
+			f->idx++;
 		}
-		(*f)++;
 
-		if (**f != ' ') {
-			emitError("parser", "expected a space after list item number");
+		if (f->buf[f->idx + 1] != ' ') {
+			emitError("parser", "expected a space after the '-'");
 			return NULL;
 		}
-		(*f)++;
+		f->idx += 2; // go past the . and space
+		skipWhitespace(f);
 
-		*f = skipWhitespace(*f);
-		char *end = strchr(*f, '\n');
-		if (!end) {
+		char *olistStart = f->buf + f->idx;
+
+		size_t len = 0;
+		while (f->buf[f->idx] != '\0' && f->buf[f->idx] != '\n') {
+			len++;
+			f->idx++;
+		}
+		if (f->buf[f->idx] == '\0') {
 			emitError("parser", "couldn't find end of line in list item");
 			return NULL;
 		}
 
-		size_t len = end - *f;
 		if (b->collection.count >= 32) {
 			break;
 		}
-		b->collection.items[b->collection.count++] = sliceMake(*f, len);
-		*f += len + 1;
+		b->collection.items[b->collection.count++] = sliceMake(olistStart, len);
+		f->idx++;
 	}
 
 	return b;
 }
 
-bool parseMarkdown(Arena *arena, char *file, Metadata **metadata, BlockList **blist) {
-	*metadata = parseMetadata(arena, file);
+bool parseMarkdown(Arena *arena, String *f, Metadata **metadata, BlockList **blist) {
+	*metadata = parseMetadata(arena, f);
 	if (!(*metadata)) {
 		emitError("parser(metadata)", "couldn't parse metadata");
 		return false;
 	}
 
-	*blist = makeBlocks(arena, file);
+	*blist = makeBlocks(arena, f);
 	if (!(*blist)) {
 		emitError("parser", "couldn't make blocks");
 		return false;

@@ -17,45 +17,44 @@ Slice getMetadataValue(Page *page, char *key, size_t keyLen) {
 	return page->metadata->values[idx];
 }
 
-int handlePlaceholder(Slice placeholder, Arena *arena, Page *page, char *out) {
+size_t handlePlaceholder(Slice placeholder, Arena *arena, Page *page, String *out) {
 	if (sliceEqual(placeholder, sliceMake("title", 5))) {
 		Slice value = getMetadataValue(page, "title", 5);
-		if (sliceEmpty(value)) {
+		if (sliceNull(value)) {
 			return -1;
 		}
-		strncat(out, value.start, value.len);
+		stringAppend(arena, out, "%.*s", (int)value.len, value.start);
 		return value.len;
 	} else if (sliceEqual(placeholder, sliceMake("date", 4))) {
 		Slice value = getMetadataValue(page, "date", 4);
-		if (sliceEmpty(value)) {
+		if (sliceNull(value)) {
 			return -1;
 		}
-		strncat(out, value.start, value.len);
+		stringAppend(arena, out, "%.*s", (int)value.len, value.start);
 		return value.len;
 	} else if (sliceEqual(placeholder, sliceMake("tags", 4))) {
 		Slice value = getMetadataValue(page, "tags", 4);
-		if (sliceEmpty(value)) {
+		if (sliceNull(value)) {
 			return -1;
 		}
-		strncat(out, value.start, value.len);
+		stringAppend(arena, out, "%.*s", (int)value.len, value.start);
 		return value.len;
 	} else if (sliceEqual(placeholder, sliceMake("content", 7))) {
-		char *renderedHTML = mdToHTML(arena, page->content);
+		String *renderedHTML = mdToHTML(arena, page->content);
 		if (!renderedHTML) {
 			emitError("template", "couldn't write body");
 			return -1;
 		}
-		size_t l = strlen(renderedHTML);
-		strncat(out, renderedHTML, l);
-		return l;
+		stringAppend(arena, out, "%.*s", (int)renderedHTML->len, renderedHTML->buf);
+		return renderedHTML->len;
 	}
 
 	return -1;
 }
 
-char *fillTemplate(Arena *arena, Page *page) {
+String *fillTemplate(Arena *arena, Page *page) {
 	Slice template = getMetadataValue(page, "template", 8);
-	if (sliceEmpty(template)) {
+	if (sliceNull(template)) {
 		return NULL;
 	}
 
@@ -65,38 +64,44 @@ char *fillTemplate(Arena *arena, Page *page) {
 
 	snprintf(templatePath, n, "templates/%.*s.txt", (int)template.len, template.start);
 
-	char *templateFile = readFile(arena, templatePath);
+	String *templateFile = readFile(arena, templatePath);
 	if (!templateFile) {
 		emitError("template", "couldn't load template file");
 		return NULL;
 	}
 
 	// since i don't know what the final size is gonna be
-	char *filledTemplate = arenaAlloc(arena, 3 * strlen(templateFile));
+	String *filledTemplate = stringMake(arena, NULL, 3 * templateFile->len);
 	if (!filledTemplate) {
 		emitError("template", "couldn't allocate output buffer");
 		return NULL;
 	}
 
-	char *in = templateFile;
-	char *out = filledTemplate;
-	while (*in != '\0') {
-		if (*in == '{') {
-			in += 2;
-			char *end = strchr(in, '}');
-			Slice placeholder = sliceMake(in, (end - in));
-			int written = handlePlaceholder(placeholder, arena, page, out);
+	templateFile->idx = 0;
+	while (templateFile->idx < templateFile->len) {
+		if (strncmp(templateFile->buf + templateFile->idx, "{{", 2) == 0) {
+			templateFile->idx += 2;
+
+			char *placeholderStart = templateFile->buf + templateFile->idx;
+			size_t placeholderLen = 0;
+			while (strncmp(templateFile->buf + templateFile->idx, "}}", 2) != 0) {
+				templateFile->idx++;
+				placeholderLen++;
+			}
+
+			Slice placeholder = sliceMake(placeholderStart, placeholderLen);
+
+			int written = handlePlaceholder(placeholder, arena, page, filledTemplate);
 			if (written == -1) {
 				emitError("template", "couldn't fill in placeholder");
 				return NULL;
 			}
-			in = end + 2;
-			out += written;
+
+			templateFile->idx += 2;
 		} else {
-			*out++ = *in++;
+			filledTemplate->buf[filledTemplate->len++] = templateFile->buf[templateFile->idx++];
 		}
 	}
-	*out = '\0';
 
 	return filledTemplate;
 }

@@ -3,7 +3,7 @@
 
 #include "memory/arena.h"
 #include "parser/token/token.h"
-#include "util/slice.h"
+#include "util/str.h"
 
 typedef enum blocktype {
 	BLK_HEADING,
@@ -17,7 +17,6 @@ typedef enum blocktype {
 typedef struct block {
 	BlockType type;
 	struct block *next;
-	TokenList *tokens;
 
 	Slice text; // for heading, paragraph, code
 	union {
@@ -42,6 +41,6 @@ typedef struct blocklist {
 } BlockList;
 
 void blockAdd(BlockList *list, Block *block);
-void blockPrint(Block *t);
+void blockPrint(Block *b);
 
 #endif

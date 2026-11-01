@@ -4,8 +4,8 @@
 #include "memory/arena.h"
 #include "sitegen/sitegen.h"
 
-int handlePlaceholder(Slice placeholder, Arena *arena, Page *page, char *out);
+size_t handlePlaceholder(Slice placeholder, Arena *arena, Page *page, String *out);
 
-char *fillTemplate(Arena *arena, Page *page);
+String *fillTemplate(Arena *arena, Page *page);
 
 #endif
