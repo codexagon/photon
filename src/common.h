@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-void emitError(const char *module, const char *fmt, ...);
-void emitWarning(const char *module, const char *fmt, ...);
+void emitError(const char *type, const char *fmt, ...);
+void emitWarning(const char *type, const char *fmt, ...);
+void emitInfo(const char *type, const char *fmt, ...);
 
 #endif

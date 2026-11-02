@@ -4,19 +4,37 @@
 #include "memory/arena.h"
 #include "sitegen/sitegen.h"
 
-void emitError(const char *module, const char *fmt, ...) {
+void emitError(const char *type, const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
-	fprintf(stderr, "\033[38;5;160;1m[ERROR] %s: ", module);
+	fprintf(stderr, "\033[38;5;160;1m[ERROR] ");
+	if (type != NULL) {
+		fprintf(stderr, "%s: ", type);
+	}
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\033[0m\n");
 	va_end(args);
 }
 
-void emitWarning(const char *module, const char *fmt, ...) {
+void emitWarning(const char *type, const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
-	fprintf(stderr, "\033[38;5;214;1m[WARN] %s: ", module);
+	fprintf(stderr, "\033[38;5;214;1m[WARN] ");
+	if (type != NULL) {
+		fprintf(stderr, "%s: ", type);
+	}
+	vfprintf(stderr, fmt, args);
+	fprintf(stderr, "\033[0m\n");
+	va_end(args);
+}
+
+void emitInfo(const char *type, const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	fprintf(stderr, "\033[38;5;245m[INFO] ");
+	if (type != NULL) {
+		fprintf(stderr, "%s: ", type);
+	}
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\033[0m\n");
 	va_end(args);
@@ -27,6 +45,9 @@ int main(int argc, char *argv[]) {
 		emitError("usage", "%s [dest-dir]", argv[0]);
 		return -1;
 	}
+
+	emitError(NULL, "test error");
+	emitWarning(NULL, "test warning");
 
 	char *destDirName = argc >= 2 ? argv[1] : "dest/";
 

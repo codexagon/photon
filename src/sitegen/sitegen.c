@@ -222,7 +222,7 @@ void generateFinalSite(Arena *arena, Section *root, char *destDirName) {
 			return;
 		}
 
-		printf("Generating %s\n", dest);
+		emitInfo(NULL, "Generating %s", dest);
 
 		String *final = fillTemplate(arena, root->pages[i]);
 		if (!final) {
