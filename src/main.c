@@ -61,23 +61,23 @@ int main(int argc, char *argv[]) {
 	}
 	emitInfo(NULL, "Generated site IR & created directory structure");
 
-	Arena *arenaPage = arenaCreate(1024 * 1024 * 1024);
-	if (!arenaPage) {
+	Arena *arenaScratch = arenaCreate(1024 * 1024 * 1024);
+	if (!arenaScratch) {
 		emitError("main", "couldn't create arena");
 		return 1;
 	}
 	emitInfo(NULL, "Created page arena");
 
-	if (!parseSite(arenaPage, root)) {
+	if (!parseSite(arena, root)) {
 		emitError("parser", "couldn't parse site");
 		return 3;
 	}
 	emitInfo(NULL, "Finished parsing site");
 
-	generateFinalSite(arenaPage, root, destDirName);
+	generateFinalSite(arenaScratch, root, destDirName);
 	emitInfo(NULL, "Generated final site");
 
-	arenaRelease(arenaPage);
+	arenaRelease(arenaScratch);
 	arenaRelease(arena);
 	return 0;
 }
