@@ -19,6 +19,7 @@ typedef struct block {
 	struct block *next;
 
 	Slice text; // for heading, paragraph, code
+	TokenList *tlist;
 	union {
 		struct {
 			int level;
@@ -29,6 +30,7 @@ typedef struct block {
 		struct {
 			int count;
 			Slice *items;
+			TokenList **tlists;
 		} collection;
 	};
 } Block;

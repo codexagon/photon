@@ -43,8 +43,9 @@ bool stringResize(Arena *arena, String *str, size_t newSize);
 
 size_t stringWrite(Arena *arena, String *str, char *fmt, ...);
 size_t stringAppend(Arena *arena, String *str, char *fmt, ...);
+bool stringAppendChar(Arena *arena, String *str, char c);
 
-String *sliceToStr(Arena *arena, Slice slice);
+#define stringAppendSlice(arena, str, slice) (stringAppend((arena), (str), "%.*s", (int)(slice).len, (slice).start))
 
 #define stringEqual(a, b)                                                                                              \
 	(((a).start && (b).start) && ((a).len == (b).len) && (memcmp((a).start, (b).start, (a).len) == 0))

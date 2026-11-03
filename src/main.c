@@ -46,9 +46,6 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	emitError(NULL, "test error");
-	emitWarning(NULL, "test warning");
-
 	char *destDirName = argc >= 2 ? argv[1] : "dest/";
 
 	Arena *arena = arenaCreate(1024 * 1024 * 1024); // 1 GB
@@ -56,19 +53,29 @@ int main(int argc, char *argv[]) {
 		emitError("main", "couldn't create arena");
 		return 1;
 	}
+	emitInfo(NULL, "Created site arena");
 
 	Section *root = generateSiteIR(arena, "content/", destDirName);
 	if (!root) {
 		return 2;
 	}
+	emitInfo(NULL, "Generated site IR & created directory structure");
 
 	Arena *arenaPage = arenaCreate(1024 * 1024 * 1024);
 	if (!arenaPage) {
 		emitError("main", "couldn't create arena");
 		return 1;
 	}
+	emitInfo(NULL, "Created page arena");
+
+	if (!parseSite(arenaPage, root)) {
+		emitError("parser", "couldn't parse site");
+		return 3;
+	}
+	emitInfo(NULL, "Finished parsing site");
 
 	generateFinalSite(arenaPage, root, destDirName);
+	emitInfo(NULL, "Generated final site");
 
 	arenaRelease(arenaPage);
 	arenaRelease(arena);

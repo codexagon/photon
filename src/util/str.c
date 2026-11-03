@@ -89,9 +89,14 @@ size_t stringAppend(Arena *arena, String *str, char *fmt, ...) {
 	return n;
 }
 
-String *sliceToStr(Arena *arena, Slice slice) {
-	if (sliceNull(slice)) {
-		return NULL;
+bool stringAppendChar(Arena *arena, String *str, char c) {
+	if (str->len + 1 >= str->cap) {
+		if (!stringResize(arena, str, str->cap * 2)) {
+			emitError("string", "couldn't resize string");
+			return false;
+		}
 	}
-	return stringMake(arena, slice.start, slice.len);
+
+	str->buf[str->len++] = c;
+	return true;
 }

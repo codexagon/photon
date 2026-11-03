@@ -109,12 +109,6 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 				}
 				newPage->name = sliceMake(nameStart, l - 3);
 
-				// parse markdown & store the "blockized" file while generating site IR itself
-				if (!parseMarkdown(arena, file, &newPage->metadata, &newPage->content)) {
-					emitError("parser", "couldn't parse file");
-					return false;
-				}
-
 				// create the dest dir for this file if its name isn't root.md
 				if (!sliceEqual(newPage->name, sliceMake("root", 4))) {
 					int n = snprintf(NULL, 0, "%s%.*s", destPath, (int)newPage->name.len, newPage->name.start) + 1;
@@ -181,6 +175,39 @@ Section *generateSiteIR(Arena *arena, const char *path, char *destDirName) {
 		return NULL;
 	}
 	return root;
+}
+
+bool parseSite(Arena *arena, Section *root) {
+	for (int i = 0; i < root->pagesLen; i++) {
+		Page *page = root->pages[i];
+		int pathLen = snprintf(NULL, 0, "%.*s/%.*s.md", (int)page->parent->path.len, page->parent->path.start,
+		                       (int)page->name.len, page->name.start) +
+		              1;
+		char path[pathLen];
+		path[pathLen - 1] = 0;
+		snprintf(path, pathLen, "%.*s/%.*s.md", (int)page->parent->path.len, page->parent->path.start, (int)page->name.len,
+		         page->name.start);
+
+		String *file = readFile(arena, path);
+		if (!file) {
+			emitError("parser", "couldn't read file");
+			return false;
+		}
+
+		if (!parseMarkdown(arena, file, &page->metadata, &page->content)) {
+			emitError("parser", "couldn't parse file");
+			return false;
+		}
+	}
+
+	for (int i = 0; i < root->childrenLen; i++) {
+		if (!parseSite(arena, root->children[i])) {
+			emitError("parser", "couldn't parse section");
+			return false;
+		}
+	}
+
+	return true;
 }
 
 bool getDestFilePath(char *dest, char *src, char *destDirName) {
