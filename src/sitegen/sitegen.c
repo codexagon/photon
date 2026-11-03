@@ -5,6 +5,30 @@
 #include "template/template.h"
 #include "util/util.h"
 
+PageNode *createPageNode(Arena *arena, Page *page) {
+	PageNode *pnode = arenaAlloc(arena, sizeof(PageNode));
+	if (!pnode) {
+		emitError("sitegen", "couldn't create page node");
+		return NULL;
+	}
+
+	pnode->page = page;
+	pnode->next = NULL;
+	return pnode;
+}
+
+SectionNode *createSectionNode(Arena *arena, Section *section) {
+	SectionNode *snode = arenaAlloc(arena, sizeof(SectionNode));
+	if (!snode) {
+		emitError("sitegen", "couldn't create section node");
+		return NULL;
+	}
+
+	snode->section = section;
+	snode->next = NULL;
+	return snode;
+}
+
 Page *pageCreate(Arena *arena, Section *parent) {
 	Page *page = arenaAlloc(arena, sizeof(Page));
 	if (!page) {
@@ -26,33 +50,34 @@ Section *sectionCreate(Arena *arena, Section *parent) {
 	}
 	section->path = SLICE_NULL;
 
-	section->childrenLen = 0;
-	memset(section->children, 0, SECTION_CHILDREN_CAP * sizeof(Section *));
-
-	section->pagesLen = 0;
-	memset(section->pages, 0, SECTION_PAGE_CAP * sizeof(Page *));
+	section->children = NULL;
+	section->pages = NULL;
 
 	section->parent = parent;
 	return section;
 }
 
-bool sectionAddPage(Section *section, Page *new) {
-	if (section->pagesLen >= SECTION_PAGE_CAP) {
-		emitError("sitegen", "exceeded section page limit");
+bool sectionAddPage(Arena *arena, Section *section, Page *new) {
+	PageNode *newPage = createPageNode(arena, new);
+	if (!newPage) {
 		return false;
 	}
 
-	section->pages[section->pagesLen++] = new;
+	newPage->next = section->pages;
+	section->pages = newPage;
+
 	return true;
 }
 
-bool sectionAddSection(Section *section, Section *new) {
-	if (section->childrenLen >= SECTION_CHILDREN_CAP) {
-		emitError("sitegen", "exceeded section children limit");
+bool sectionAddSection(Arena *arena, Section *section, Section *new) {
+	SectionNode *newSection = createSectionNode(arena, new);
+	if (!newSection) {
 		return false;
 	}
 
-	section->children[section->childrenLen++] = new;
+	newSection->next = section->children;
+	section->children = newSection;
+
 	return true;
 }
 
@@ -95,7 +120,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 				}
 
 				Page *newPage = pageCreate(arena, root);
-				if (!sectionAddPage(root, newPage)) {
+				if (!sectionAddPage(arena, root, newPage)) {
 					emitError("sitegen", "couldn't add page");
 					closedir(cdir);
 					return false;
@@ -125,7 +150,7 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 			}
 			case DT_DIR: {
 				Section *newSection = sectionCreate(arena, root);
-				if (!sectionAddSection(root, newSection)) {
+				if (!sectionAddSection(arena, root, newSection)) {
 					emitError("sitegen", "couldn't add section");
 					closedir(cdir);
 					return false;
@@ -166,7 +191,7 @@ Section *generateSiteIR(Arena *arena, const char *path, char *destDirName) {
 	Section *root = sectionCreate(arena, NULL);
 	root->path = sliceMake("content", 7);
 	if (!createDir(destDirName)) {
-		emitError("generation", "couldn't create dest directory");
+		emitError("sitegen", "couldn't create dest directory");
 		return NULL;
 	}
 
@@ -178,8 +203,8 @@ Section *generateSiteIR(Arena *arena, const char *path, char *destDirName) {
 }
 
 bool parseSite(Arena *arena, Section *root) {
-	for (int i = 0; i < root->pagesLen; i++) {
-		Page *page = root->pages[i];
+	for (PageNode *p = root->pages; p != NULL; p = p->next) {
+		Page *page = p->page;
 		int pathLen = snprintf(NULL, 0, "%.*s/%.*s.md", (int)page->parent->path.len, page->parent->path.start,
 		                       (int)page->name.len, page->name.start) +
 		              1;
@@ -200,8 +225,8 @@ bool parseSite(Arena *arena, Section *root) {
 		}
 	}
 
-	for (int i = 0; i < root->childrenLen; i++) {
-		if (!parseSite(arena, root->children[i])) {
+	for (SectionNode *s = root->children; s != NULL; s = s->next) {
+		if (!parseSite(arena, s->section)) {
 			emitError("parser", "couldn't parse section");
 			return false;
 		}
@@ -236,8 +261,8 @@ bool getDestFilePath(char *dest, char *src, char *destDirName) {
 }
 
 void generateFinalSite(Arena *arena, Section *root, char *destDirName) {
-	for (int i = 0; i < root->pagesLen; i++) {
-		Page *curPage = root->pages[i];
+	for (PageNode *p = root->pages; p != NULL; p = p->next) {
+		Page *curPage = p->page;
 
 		int n = snprintf(NULL, 0, "%s/%.*s", curPage->parent->path.start, (int)curPage->name.len, curPage->name.start) + 1;
 		char src[n];
@@ -251,7 +276,7 @@ void generateFinalSite(Arena *arena, Section *root, char *destDirName) {
 
 		emitInfo(NULL, "Generating %s", dest);
 
-		String *final = fillTemplate(arena, root->pages[i]);
+		String *final = fillTemplate(arena, curPage);
 		if (!final) {
 			emitError("template", "couldn't render output");
 			return;
@@ -273,7 +298,7 @@ void generateFinalSite(Arena *arena, Section *root, char *destDirName) {
 		arenaFree(arena);
 	}
 
-	for (int i = 0; i < root->childrenLen; i++) {
-		generateFinalSite(arena, root->children[i], destDirName);
+	for (SectionNode *s = root->children; s != NULL; s = s->next) {
+		generateFinalSite(arena, s->section, destDirName);
 	}
 }

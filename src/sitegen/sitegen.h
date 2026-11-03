@@ -8,6 +8,16 @@
 struct page;
 struct section;
 
+typedef struct nodepage {
+	struct page *page;
+	struct nodepage *next;
+} PageNode;
+
+typedef struct nodesection {
+	struct section *section;
+	struct nodesection *next;
+} SectionNode;
+
 typedef struct page {
 	Slice name;
 	Metadata *metadata;
@@ -15,23 +25,18 @@ typedef struct page {
 	struct section *parent;
 } Page;
 
-#define SECTION_CHILDREN_CAP 4
-#define SECTION_PAGE_CAP 4
-
 typedef struct section {
 	Slice path;
 	struct section *parent;
-	struct section *children[SECTION_CHILDREN_CAP];
-	Page *pages[SECTION_PAGE_CAP];
-	int childrenLen;
-	int pagesLen;
+	SectionNode *children;
+	PageNode *pages;
 } Section;
 
 Page *pageCreate(Arena *arena, Section *parent);
 
 Section *sectionCreate(Arena *arena, Section *parent);
-bool sectionAddPage(Section *section, Page *new);
-bool sectionAddSection(Section *section, Section *new);
+bool sectionAddPage(Arena *arena, Section *section, Page *new);
+bool sectionAddSection(Arena *arena, Section *section, Section *new);
 
 Section *generateSiteIR(Arena *arena, const char *path, char *destDirName);
 
