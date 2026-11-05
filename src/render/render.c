@@ -3,6 +3,23 @@
 #include "parser/block/block.h"
 #include "render.h"
 
+int writeEscapedCodeChars(Arena *arena, String *output, Slice *content) {
+	int written = 0;
+
+	for (size_t i = 0; i < content->len; i++) {
+		int l = 1;
+		char *esc = getEscapedChar(content->start[i], &l);
+		if (esc) {
+			stringAppend(arena, output, "%s", esc);
+		} else {
+			stringAppendChar(arena, output, content->start[i]);
+		}
+		written += l;
+	}
+
+	return written;
+}
+
 int renderToken(Arena *arena, Token *token, String *output) {
 	switch (token->type) {
 		case TKN_BOLD: {
@@ -22,7 +39,7 @@ int renderToken(Arena *arena, Token *token, String *output) {
 		case TKN_CODESPAN: {
 			Slice content = sliceMake(token->text.start + 1, token->text.len - 2);
 			stringAppend(arena, output, "<code>");
-			stringAppendSlice(arena, output, content);
+			writeEscapedCodeChars(arena, output, &content);
 			stringAppend(arena, output, "</code>");
 			break;
 		}
@@ -33,16 +50,19 @@ int renderToken(Arena *arena, Token *token, String *output) {
 
 int renderBlockContents(Arena *arena, Slice *text, TokenList *tlist, String *output) {
 	int written = 0;
-
 	Token *curToken = tlist->head;
 
-	// improve this section, use slices instead of comparing every character
 	size_t i = 0;
 	while (i < text->len) {
+		Slice content = sliceMake(text->start + i, 0);
+
+		size_t initial = i;
 		while (curToken ? text->start + i != curToken->text.start : i < text->len) {
-			written += stringAppendChar(arena, output, text->start[i]);
 			i++;
 		}
+
+		content.len = i - initial;
+		written += stringAppendSlice(arena, output, content);
 
 		if (curToken) {
 			i += renderToken(arena, curToken, output);
@@ -72,7 +92,7 @@ int renderBlock(Arena *arena, Block *block, String *output) {
 		case BLK_CODE: {
 			written += stringAppend(arena, output, "<pre><code class=\"language-%.*s\">\n", (int)block->code.lang.len,
 			                        block->code.lang.start);
-			written += stringAppendSlice(arena, output, block->text);
+			written += writeEscapedCodeChars(arena, output, &block->text);
 			written += stringAppend(arena, output, "</code></pre>\n");
 			break;
 		}

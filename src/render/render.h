@@ -4,6 +4,8 @@
 #include "memory/arena.h"
 #include "parser/block/block.h"
 
+char *getEscapedChar(char c, int *l);
+
 int getRenderedBlockLen(Block *block);
 int getRenderedTokenListLen(TokenList *tlist);
 

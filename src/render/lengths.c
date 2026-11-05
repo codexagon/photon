@@ -1,13 +1,28 @@
 #include "render.h"
 
+int getRenderedTokenLen(Token *t) {
+	int len = 0;
+	switch (t->type) {
+		case TKN_BOLD: len = strlen("<strong></strong>"); break;
+		case TKN_ITALIC: len = strlen("<em></em>"); break;
+		case TKN_CODESPAN: {
+			len = strlen("<code></code>");
+			for (size_t i = 0; i < t->text.len; i++) {
+				int l = 1;
+				getEscapedChar(t->text.start[i], &l);
+				len += l;
+			}
+			break;
+		}
+	}
+
+	return len;
+}
+
 int getRenderedTokenListLen(TokenList *tlist) {
 	int len = 0;
 	for (Token *t = tlist->head; t != NULL; t = t->next) {
-		switch (t->type) {
-			case TKN_BOLD: len += strlen("<strong></strong>"); break;
-			case TKN_ITALIC: len += strlen("<em></em>"); break;
-			case TKN_CODESPAN: len += strlen("<code></code>"); break;
-		}
+		len += getRenderedTokenLen(t);
 	}
 
 	return len;
@@ -29,7 +44,7 @@ int getRenderedBlockLen(Block *block) {
 			break;
 		}
 		case BLK_CODE: {
-			len = strlen("<pre><code class=\"language-\">\n</code></pre>\n");
+			len = strlen("<pre><code class=\"language-\">\n</code></pre>\n") * 2;
 			len += block->text.len;
 			break;
 		}
@@ -65,4 +80,32 @@ int getRenderedBlockLen(Block *block) {
 	}
 
 	return len;
+}
+
+char *getEscapedChar(char c, int *l) {
+	switch (c) {
+		case '"': {
+			*l = strlen("&quot;");
+			return "&quot;";
+		}
+		case '&': {
+			*l = strlen("&amp;");
+			return "&amp;";
+		}
+		case '\'': {
+			*l = strlen("&#39;");
+			return "&#39;";
+		}
+		case '<': {
+			*l = strlen("&lt;");
+			return "&lt;";
+		}
+		case '>': {
+			*l = strlen("&gt;");
+			return "&gt;";
+		}
+		default: {
+			return NULL;
+		}
+	}
 }
