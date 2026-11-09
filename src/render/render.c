@@ -3,7 +3,35 @@
 #include "parser/block/block.h"
 #include "render.h"
 
-int writeEscapedCodeChars(Arena *arena, String *output, Slice *content) {
+char *getEscapedChar(char c, int *l) {
+	switch (c) {
+		case '"': {
+			*l = strlen("&quot;");
+			return "&quot;";
+		}
+		case '&': {
+			*l = strlen("&amp;");
+			return "&amp;";
+		}
+		case '\'': {
+			*l = strlen("&#39;");
+			return "&#39;";
+		}
+		case '<': {
+			*l = strlen("&lt;");
+			return "&lt;";
+		}
+		case '>': {
+			*l = strlen("&gt;");
+			return "&gt;";
+		}
+		default: {
+			return NULL;
+		}
+	}
+}
+
+int writeEscapedChars(Arena *arena, String *output, Slice *content) {
 	int written = 0;
 
 	for (size_t i = 0; i < content->len; i++) {
@@ -25,21 +53,21 @@ int renderToken(Arena *arena, Token *token, String *output) {
 		case TKN_BOLD: {
 			Slice content = sliceMake(token->text.start + 2, token->text.len - 4);
 			stringAppend(arena, output, "<strong>");
-			stringAppendSlice(arena, output, content);
+			writeEscapedChars(arena, output, &content);
 			stringAppend(arena, output, "</strong>");
 			break;
 		}
 		case TKN_ITALIC: {
 			Slice content = sliceMake(token->text.start + 1, token->text.len - 2);
 			stringAppend(arena, output, "<em>");
-			stringAppendSlice(arena, output, content);
+			writeEscapedChars(arena, output, &content);
 			stringAppend(arena, output, "</em>");
 			break;
 		}
 		case TKN_CODESPAN: {
 			Slice content = sliceMake(token->text.start + 1, token->text.len - 2);
 			stringAppend(arena, output, "<code>");
-			writeEscapedCodeChars(arena, output, &content);
+			writeEscapedChars(arena, output, &content);
 			stringAppend(arena, output, "</code>");
 			break;
 		}
@@ -62,7 +90,7 @@ int renderBlockContents(Arena *arena, Slice *text, TokenList *tlist, String *out
 		}
 
 		content.len = i - initial;
-		written += stringAppendSlice(arena, output, content);
+		written += writeEscapedChars(arena, output, &content);
 
 		if (curToken) {
 			i += renderToken(arena, curToken, output);
@@ -90,14 +118,14 @@ int renderBlock(Arena *arena, Block *block, String *output) {
 			break;
 		}
 		case BLK_CODE: {
-			written += stringAppend(arena, output, "<pre><code class=\"language-%.*s\">\n", (int)block->code.lang.len,
+			written += stringAppend(arena, output, "<pre><code class=\"language-%.*s\">", (int)block->code.lang.len,
 			                        block->code.lang.start);
-			written += writeEscapedCodeChars(arena, output, &block->text);
+			written += writeEscapedChars(arena, output, &block->text);
 			written += stringAppend(arena, output, "</code></pre>\n");
 			break;
 		}
 		case BLK_BLOCKQUOTE: {
-			written += stringAppend(arena, output, "<blockquote>\n");
+			written += stringAppend(arena, output, "<blockquote>");
 			for (int i = 0; i < block->collection.count; i++) {
 				written += renderBlockContents(arena, &block->collection.items[i], block->collection.tlists[i], output);
 				written += stringAppendChar(arena, output, ' ');
@@ -135,17 +163,7 @@ int renderBlock(Arena *arena, Block *block, String *output) {
 }
 
 String *mdToHTML(Arena *arena, BlockList *blist) {
-	int totalLen = 0;
-	for (Block *b = blist->head; b != NULL; b = b->next) {
-		int l = getRenderedBlockLen(b);
-		if (l == -1) {
-			emitError("render", "couldn't determine block length");
-			return NULL;
-		}
-		totalLen += l;
-	}
-
-	String *output = stringMake(arena, NULL, totalLen);
+	String *output = stringMake(arena, NULL, 1024);
 	if (!output) {
 		emitError("render", "couldn't allocate output string");
 		return NULL;
@@ -158,5 +176,6 @@ String *mdToHTML(Arena *arena, BlockList *blist) {
 		}
 	}
 
+	output->len--;
 	return output;
 }
