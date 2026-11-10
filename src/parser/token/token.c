@@ -43,5 +43,13 @@ void tokenPrint(Token *t) {
 			printf("\"}\n");
 			break;
 		}
+		case TKN_HYPERLINK: {
+			printf("{hyperlink \"");
+			slicePrint(t->linkUrl);
+			printf("\", \"");
+			slicePrint(t->text);
+			printf("\"\n");
+			break;
+		}
 	}
 }

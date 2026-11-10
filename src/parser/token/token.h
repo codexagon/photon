@@ -8,13 +8,17 @@ typedef enum tokentype {
 	TKN_BOLD,
 	TKN_ITALIC,
 	TKN_CODESPAN,
+	TKN_HYPERLINK,
 } TokenType;
 
 typedef struct token {
 	TokenType type;
 	struct token *next;
 
-	Slice text; // for bold, italic, codespan text
+	Slice text; // for bold, italic, codespan, hyperlink text
+	union {
+		Slice linkUrl;
+	};
 } Token;
 
 Token *tokenMake(Arena *arena, TokenType type);

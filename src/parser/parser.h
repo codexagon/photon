@@ -37,6 +37,7 @@ bool makeTokens(Arena *arena, Block *block);
 Token *makeBoldToken(Arena *arena, Slice *s, size_t *i, bool *isError);
 Token *makeItalicToken(Arena *arena, Slice *s, size_t *i, bool *isError);
 Token *makeCodespanToken(Arena *arena, Slice *s, size_t *i, bool *isError);
+Token *makeHyperlinkToken(Arena *arena, Slice *s, size_t *i, bool *isError);
 
 // overall parsing
 bool parseMarkdown(Arena *arena, String *f, Metadata **metadata, BlockList **blist);

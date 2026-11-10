@@ -49,6 +49,8 @@ int writeEscapedChars(Arena *arena, String *output, Slice *content) {
 }
 
 int renderToken(Arena *arena, Token *token, String *output) {
+	int written = token->text.len;
+
 	switch (token->type) {
 		case TKN_BOLD: {
 			Slice content = sliceMake(token->text.start + 2, token->text.len - 4);
@@ -71,9 +73,21 @@ int renderToken(Arena *arena, Token *token, String *output) {
 			stringAppend(arena, output, "</code>");
 			break;
 		}
+		case TKN_HYPERLINK: {
+			Slice url = sliceMake(token->linkUrl.start, token->linkUrl.len);
+			Slice content = sliceMake(token->text.start + 1, token->text.len - 1);
+			stringAppend(arena, output, "<a target=\"_blank\" href=\"");
+			stringAppendSlice(arena, output, url);
+			stringAppend(arena, output, "\">");
+			writeEscapedChars(arena, output, &content);
+			stringAppend(arena, output, "</a>");
+			
+			written += url.len + 3;
+			break;
+		}
 	}
 
-	return token->text.len;
+	return written;
 }
 
 int renderBlockContents(Arena *arena, Slice *text, TokenList *tlist, String *output) {

@@ -64,10 +64,14 @@ Block *makeHeadingBlock(Arena *arena, String *f) {
 		f->idx++;
 	}
 	b->heading.level = h;
+	if (h > 6) {
+		emitError("parser", "found more than 6 '#', max is 6");
+		return NULL;
+	}
 
 	// ensure space between heading hashes & text
 	if (f->buf[f->idx] != ' ') {
-		emitError("parser", "expected space after heading hashes \"%s\"", f->buf + f->idx - 1);
+		emitError("parser", "expected space after '#' chain");
 		return NULL;
 	}
 	f->idx++;
@@ -121,7 +125,7 @@ Block *makeCodeBlock(Arena *arena, String *f) {
 
 	f->idx += 3;
 
-	b->text = sliceMake(codeStart, codeLen);
+	b->text = sliceMake(codeStart, codeLen - 1);
 	return b;
 }
 

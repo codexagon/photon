@@ -20,6 +20,10 @@ bool tokenizeSlice(Arena *arena, TokenList *list, Slice *slice) {
 				new = makeCodespanToken(arena, slice, &i, &isError);
 				break;
 			}
+			case '[': {
+				new = makeHyperlinkToken(arena, slice, &i, &isError);
+				break;
+			}
 			default: {
 				i++;
 			}
@@ -54,7 +58,6 @@ Token *makeBoldToken(Arena *arena, Slice *s, size_t *i, bool *isError) {
 	}
 
 	if (*i + 1 >= s->len) {
-		emitWarning("parser", "couldn't find end of bold text, falling back to normal text");
 		*isError = false;
 		*i = initial + 2;
 		return NULL;
@@ -82,7 +85,6 @@ Token *makeItalicToken(Arena *arena, Slice *s, size_t *i, bool *isError) {
 	}
 
 	if (*i >= s->len) {
-		emitWarning("parser", "couldn't find end of italic text, falling back to normal text");
 		*isError = false;
 		*i = initial + 1;
 		return NULL;
@@ -110,7 +112,6 @@ Token *makeCodespanToken(Arena *arena, Slice *s, size_t *i, bool *isError) {
 	}
 
 	if (*i >= s->len) {
-		emitWarning("parser", "couldn't find end of codespan text, falling back to normal text");
 		*isError = false;
 		*i = initial + 1;
 		return NULL;
@@ -118,6 +119,54 @@ Token *makeCodespanToken(Arena *arena, Slice *s, size_t *i, bool *isError) {
 
 	(*i)++; // skip the closing '`'
 	t->text = sliceMake(s->start + initial, *i - initial);
+
+	return t;
+}
+
+Token *makeHyperlinkToken(Arena *arena, Slice *s, size_t *i, bool *isError) {
+	Token *t = tokenMake(arena, TKN_HYPERLINK);
+	if (!t) {
+		emitError("parser", "couldn't create token");
+		*isError = true;
+		return NULL;
+	}
+
+	size_t initial = *i;
+
+	(*i)++; // skip the '['
+	while (*i < s->len && s->start[*i] != ']') {
+		(*i)++;
+	}
+
+	if (*i >= s->len) {
+		*isError = false;
+		*i = initial + 1;
+		return NULL;
+	}
+
+	t->text = sliceMake(s->start + initial, *i - initial);
+
+	(*i)++; // skip the ']'
+	if (s->start[*i] != '(') {
+		*isError = false;
+		*i = initial + 1;
+		return NULL;
+	}
+
+	(*i)++; // skip the '('
+	size_t urlStart = *i;
+	while (*i < s->len && s->start[*i] != ')') {
+		(*i)++;
+	}
+
+	if (*i >= s->len) {
+		*isError = false;
+		*i = initial + 1;
+		return NULL;
+	}
+
+	t->linkUrl = sliceMake(s->start + urlStart, *i - urlStart);
+	(*i)++; // skip the ')'
 
 	return t;
 }
