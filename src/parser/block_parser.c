@@ -28,6 +28,9 @@ BlockList *makeBlocks(Arena *arena, String *f) {
 			block = makeCodeBlock(arena, f);
 		} else if (f->buf[f->idx] == '>') {
 			block = makeBlockquoteBlock(arena, f);
+		} else if (strncmp(f->buf + f->idx - 1, "\n---\n", 5) == 0) {
+			block = blockMake(arena, BLK_HORIZONTAL_LINE);
+			f->idx += 4;
 		} else if (f->buf[f->idx] == '-') {
 			block = makeUnorderedListBlock(arena, f);
 		} else if (isdigit(f->buf[f->idx])) {

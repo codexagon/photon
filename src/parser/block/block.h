@@ -12,6 +12,7 @@ typedef enum blocktype {
 	BLK_BLOCKQUOTE,
 	BLK_UNORDERED_LIST,
 	BLK_ORDERED_LIST,
+	BLK_HORIZONTAL_LINE,
 } BlockType;
 
 typedef struct block {

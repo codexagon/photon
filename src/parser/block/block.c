@@ -74,5 +74,9 @@ void blockPrint(Block *b) {
 			printf("\"]\n");
 			break;
 		}
+		case BLK_HORIZONTAL_LINE: {
+			printf("[hr]\n");
+			break;
+		}
 	}
 }

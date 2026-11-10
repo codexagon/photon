@@ -124,7 +124,9 @@ Token *makeCodespanToken(Arena *arena, Slice *s, size_t *i, bool *isError) {
 
 bool makeTokens(Arena *arena, Block *block) {
 	switch (block->type) {
-		case BLK_CODE: break;
+		case BLK_CODE:
+		case BLK_HORIZONTAL_LINE: break;
+
 		case BLK_HEADING:
 		case BLK_PARAGRAPH: {
 			block->tlist = arenaAlloc(arena, sizeof(TokenList));

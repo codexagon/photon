@@ -153,6 +153,10 @@ int renderBlock(Arena *arena, Block *block, String *output) {
 			written += stringAppend(arena, output, "</ol>\n");
 			break;
 		}
+		case BLK_HORIZONTAL_LINE: {
+			written += stringAppend(arena, output, "<hr>\n");
+			break;
+		}
 		default: {
 			emitError("render", "unidentified block type encountered, aborting");
 			return -1;
