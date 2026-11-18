@@ -122,8 +122,8 @@ int renderBlock(Arena *arena, Block *block, String *output) {
 			break;
 		}
 		case BLK_CODE: {
-			written += stringAppend(arena, output, "<pre><code class=\"language-%.*s\">", (int)block->code.lang.len,
-			                        block->code.lang.start);
+			written += stringAppend(arena, output, "<pre><code class=\"language-%.*s\">",
+			                        (int)block->code.lang.len, block->code.lang.start);
 			written += writeEscapedChars(arena, output, &block->text);
 			written += stringAppend(arena, output, "</code></pre>\n");
 			break;
@@ -131,7 +131,8 @@ int renderBlock(Arena *arena, Block *block, String *output) {
 		case BLK_BLOCKQUOTE: {
 			written += stringAppend(arena, output, "<blockquote>");
 			for (int i = 0; i < block->collection.count; i++) {
-				written += renderBlockContents(arena, &block->collection.items[i], block->collection.tlists[i], output);
+				written += renderBlockContents(arena, &block->collection.items[i],
+				                               block->collection.tlists[i], output);
 				written += stringAppendChar(arena, output, ' ');
 			}
 			written += stringAppend(arena, output, "</blockquote>\n");
@@ -141,7 +142,8 @@ int renderBlock(Arena *arena, Block *block, String *output) {
 			written += stringAppend(arena, output, "<ul>\n");
 			for (int i = 0; i < block->collection.count; i++) {
 				written += stringAppend(arena, output, "<li>");
-				written += renderBlockContents(arena, &block->collection.items[i], block->collection.tlists[i], output);
+				written += renderBlockContents(arena, &block->collection.items[i],
+				                               block->collection.tlists[i], output);
 				written += stringAppend(arena, output, "</li>\n");
 			}
 			written += stringAppend(arena, output, "</ul>\n");
@@ -151,7 +153,8 @@ int renderBlock(Arena *arena, Block *block, String *output) {
 			written += stringAppend(arena, output, "<ol>\n");
 			for (int i = 0; i < block->collection.count; i++) {
 				written += stringAppend(arena, output, "<li>");
-				written += renderBlockContents(arena, &block->collection.items[i], block->collection.tlists[i], output);
+				written += renderBlockContents(arena, &block->collection.items[i],
+				                               block->collection.tlists[i], output);
 				written += stringAppend(arena, output, "</li>\n");
 			}
 			written += stringAppend(arena, output, "</ol>\n");

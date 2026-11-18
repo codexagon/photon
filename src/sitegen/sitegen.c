@@ -82,7 +82,8 @@ bool sectionAddSection(Arena *arena, Section *section, Section *new) {
 }
 
 // builds site IR and generates destination dir structure too
-bool generateRecursive(Arena *arena, Section *root, const char *path, const char *destPath) {
+bool generateRecursive(Arena *arena, Section *root, const char *path,
+                       const char *destPath) {
 	DIR *cdir = opendir(path);
 	if (!cdir) {
 		emitError("sitegen", "failed to open directory");
@@ -130,7 +131,8 @@ bool generateRecursive(Arena *arena, Section *root, const char *path, const char
 	return true;
 }
 
-bool makeSitePage(Arena *arena, Section *root, char *fullPath, int l, const char *destPath) {
+bool makeSitePage(Arena *arena, Section *root, char *fullPath, int l,
+                  const char *destPath) {
 	String *file = readFile(arena, fullPath);
 	if (!file) {
 		emitError("sitegen", "couldn't read file");
@@ -166,7 +168,8 @@ bool makeSitePage(Arena *arena, Section *root, char *fullPath, int l, const char
 	return true;
 }
 
-bool makeSiteSection(Arena *arena, Section *root, char *fullPath, int l, const char *destPath) {
+bool makeSiteSection(Arena *arena, Section *root, char *fullPath, int l,
+                     const char *destPath) {
 	Section *newSection = sectionCreate(arena, root);
 	if (!sectionAddSection(arena, root, newSection)) {
 		emitError("sitegen", "couldn't add section");
@@ -214,13 +217,14 @@ Section *generateSiteIR(Arena *arena, const char *path, char *destDirName) {
 bool parseSite(Arena *arena, Section *root) {
 	for (PageNode *p = root->pages; p != NULL; p = p->next) {
 		Page *page = p->page;
-		int pathLen = snprintf(NULL, 0, "%.*s/%.*s.md", (int)page->parent->path.len, page->parent->path.start,
-		                       (int)page->name.len, page->name.start) +
-		              1;
+		int pathLen =
+		    snprintf(NULL, 0, "%.*s/%.*s.md", (int)page->parent->path.len,
+				         page->parent->path.start, (int)page->name.len, page->name.start) +
+		    1;
 		char path[pathLen];
 		path[pathLen - 1] = 0;
-		snprintf(path, pathLen, "%.*s/%.*s.md", (int)page->parent->path.len, page->parent->path.start, (int)page->name.len,
-		         page->name.start);
+		snprintf(path, pathLen, "%.*s/%.*s.md", (int)page->parent->path.len,
+		         page->parent->path.start, (int)page->name.len, page->name.start);
 
 		String *file = readFile(arena, path);
 		if (!file) {
@@ -273,9 +277,12 @@ void generateFinalSite(Arena *arena, Section *root, char *destDirName) {
 	for (PageNode *p = root->pages; p != NULL; p = p->next) {
 		Page *curPage = p->page;
 
-		int n = snprintf(NULL, 0, "%s/%.*s", curPage->parent->path.start, (int)curPage->name.len, curPage->name.start) + 1;
+		int n = snprintf(NULL, 0, "%s/%.*s", curPage->parent->path.start,
+		                 (int)curPage->name.len, curPage->name.start) +
+		        1;
 		char src[n];
-		snprintf(src, sizeof(src), "%s/%.*s", curPage->parent->path.start, (int)curPage->name.len, curPage->name.start);
+		snprintf(src, sizeof(src), "%s/%.*s", curPage->parent->path.start,
+		         (int)curPage->name.len, curPage->name.start);
 
 		char dest[128] = {0};
 		if (!getDestFilePath(dest, src, destDirName)) {

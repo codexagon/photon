@@ -200,7 +200,8 @@ bool makeTokens(Arena *arena, Block *block) {
 					return false;
 				}
 
-				if (!tokenizeSlice(arena, block->collection.tlists[l], block->collection.items + l)) {
+				if (!tokenizeSlice(arena, block->collection.tlists[l],
+				                   block->collection.items + l)) {
 					emitError("parser", "couldn't tokenize block slice");
 					return false;
 				}

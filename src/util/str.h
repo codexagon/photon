@@ -16,13 +16,14 @@ typedef struct slice {
 
 #define SLICE_NULL (Slice){0}
 
-#define sliceMake(buf, l)                                                                                              \
-	(Slice) {                                                                                                            \
-		.start = ((const char *)buf), .len = ((size_t)l)                                                                   \
+#define sliceMake(buf, l)                                                                \
+	(Slice) {                                                                              \
+		.start = ((const char *)buf), .len = ((size_t)l)                                     \
 	}
 
-#define sliceEqual(a, b)                                                                                               \
-	(((a).start && (b).start) && ((a).len == (b).len) && (memcmp((a).start, (b).start, (a).len) == 0))
+#define sliceEqual(a, b)                                                                 \
+	(((a).start && (b).start) && ((a).len == (b).len) &&                                   \
+	 (memcmp((a).start, (b).start, (a).len) == 0))
 
 #define sliceNull(s) ((s).start == NULL || (s).len == 0)
 
@@ -45,10 +46,12 @@ size_t stringWrite(Arena *arena, String *str, char *fmt, ...);
 size_t stringAppend(Arena *arena, String *str, char *fmt, ...);
 bool stringAppendChar(Arena *arena, String *str, char c);
 
-#define stringAppendSlice(arena, str, slice) (stringAppend((arena), (str), "%.*s", (int)(slice).len, (slice).start))
+#define stringAppendSlice(arena, str, slice)                                             \
+	(stringAppend((arena), (str), "%.*s", (int)(slice).len, (slice).start))
 
-#define stringEqual(a, b)                                                                                              \
-	(((a).start && (b).start) && ((a).len == (b).len) && (memcmp((a).start, (b).start, (a).len) == 0))
+#define stringEqual(a, b)                                                                \
+	(((a).start && (b).start) && ((a).len == (b).len) &&                                   \
+	 (memcmp((a).start, (b).start, (a).len) == 0))
 
 #define stringNull(s) ((s).buf == NULL || (s).cap == 0)
 

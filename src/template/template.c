@@ -5,7 +5,8 @@
 Slice getMetadataValue(Page *page, char *key, size_t keyLen) {
 	int idx = 0;
 	while (idx < page->metadata->len &&
-	       (keyLen != page->metadata->keys[idx].len || strncmp(page->metadata->keys[idx].start, key, keyLen) != 0)) {
+	       (keyLen != page->metadata->keys[idx].len ||
+	        strncmp(page->metadata->keys[idx].start, key, keyLen) != 0)) {
 		idx++;
 	}
 
