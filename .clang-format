@@ -2,7 +2,7 @@ UseTab: ForIndentation
 TabWidth: 2
 IndentWidth: 2
 
-ColumnLimit: 120
+ColumnLimit: 90
 
 IndentCaseLabels: true
 
