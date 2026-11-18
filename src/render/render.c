@@ -4,31 +4,21 @@
 #include "render.h"
 
 char *getEscapedChar(char c, int *l) {
+	char *escaped = NULL;
 	switch (c) {
-		case '"': {
-			*l = strlen("&quot;");
-			return "&quot;";
-		}
-		case '&': {
-			*l = strlen("&amp;");
-			return "&amp;";
-		}
-		case '\'': {
-			*l = strlen("&#39;");
-			return "&#39;";
-		}
-		case '<': {
-			*l = strlen("&lt;");
-			return "&lt;";
-		}
-		case '>': {
-			*l = strlen("&gt;");
-			return "&gt;";
-		}
-		default: {
-			return NULL;
-		}
+		case '"': escaped = "&quot;"; break;
+		case '&': escaped = "&amp;"; break;
+		case '\'': escaped = "&#39;"; break;
+		case '<': escaped = "&lt;"; break;
+		case '>': escaped = "&gt;"; break;
 	}
+
+	if (!escaped) {
+		return NULL;
+	}
+
+	*l = strlen(escaped);
+	return escaped;
 }
 
 int writeEscapedChars(Arena *arena, String *output, Slice *content) {
@@ -81,7 +71,7 @@ int renderToken(Arena *arena, Token *token, String *output) {
 			stringAppend(arena, output, "\">");
 			writeEscapedChars(arena, output, &content);
 			stringAppend(arena, output, "</a>");
-			
+
 			written += url.len + 3;
 			break;
 		}

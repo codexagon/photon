@@ -4,24 +4,24 @@
 bool tokenizeSlice(Arena *arena, TokenList *list, Slice *slice) {
 	size_t i = 0;
 	while (i < slice->len) {
-		Token *new = NULL;
+		Token *newToken = NULL;
 		bool isError = false; // to determine whether its an actual error or falling back
 
 		switch (slice->start[i]) {
 			case '*': {
 				if (slice->start[i + 1] == '*') {
-					new = makeBoldToken(arena, slice, &i, &isError);
+					newToken = makeBoldToken(arena, slice, &i, &isError);
 				} else {
-					new = makeItalicToken(arena, slice, &i, &isError);
+					newToken = makeItalicToken(arena, slice, &i, &isError);
 				}
 				break;
 			}
 			case '`': {
-				new = makeCodespanToken(arena, slice, &i, &isError);
+				newToken = makeCodespanToken(arena, slice, &i, &isError);
 				break;
 			}
 			case '[': {
-				new = makeHyperlinkToken(arena, slice, &i, &isError);
+				newToken = makeHyperlinkToken(arena, slice, &i, &isError);
 				break;
 			}
 			default: {
@@ -30,12 +30,12 @@ bool tokenizeSlice(Arena *arena, TokenList *list, Slice *slice) {
 		}
 
 		// error out only if its an actual error, not falling back to normal text
-		if (!new && isError) {
+		if (!newToken && isError) {
 			return false;
 		}
 
-		if (new) {
-			tokenAdd(list, new);
+		if (newToken) {
+			tokenAdd(list, newToken);
 		}
 	}
 

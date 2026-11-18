@@ -4,7 +4,6 @@
 #include "common.h"
 #include "parser.h"
 
-// for testing
 void metadataPrint(Metadata *m) {
 	for (int i = 0; i < m->len; i++) {
 		slicePrint(m->keys[i]);
@@ -46,10 +45,14 @@ bool parseMetadataLine(Metadata *m, String *f) {
 	return true;
 }
 
+bool isMetadataPresent(String *f) {
+	return strncmp(f->buf, "---", 3) == 0;
+}
+
 Metadata *parseMetadata(Arena *arena, String *f) {
 	Metadata *m = arenaAlloc(arena, sizeof(Metadata));
 	if (!m) {
-		emitError("parser(metadata)", "couldn't parse f metadata");
+		emitError("parser(metadata)", "couldn't parse file metadata");
 		return NULL;
 	}
 
@@ -57,9 +60,8 @@ Metadata *parseMetadata(Arena *arena, String *f) {
 	memset(m->keys, 0, METADATA_CAP * sizeof(Slice));
 	memset(m->values, 0, METADATA_CAP * sizeof(Slice));
 
-	// check if metadata section is present
-	if (strncmp(f->buf, "---", 3) != 0) {
-		emitError("parser(metadata)", "couldn't find metadata section in f");
+	if (!isMetadataPresent(f)) {
+		emitError("parser(metadata)", "couldn't find metadata section in file");
 		return NULL;
 	}
 
@@ -91,7 +93,7 @@ Metadata *parseMetadata(Arena *arena, String *f) {
 }
 
 bool jumpOverMetadata(String *f) {
-	if (strncmp(f->buf, "---", 3) != 0) {
+	if (!isMetadataPresent(f)) {
 		emitError("parser", "metadata not found");
 		return false;
 	}

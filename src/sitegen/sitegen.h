@@ -42,6 +42,9 @@ Section *generateSiteIR(Arena *arena, const char *path, char *destDirName);
 
 bool parseSite(Arena *arena, Section *root);
 
+bool makeSitePage(Arena *arena, Section *root, char *fullPath, int l, const char *destPath);
+bool makeSiteSection(Arena *arena, Section *root, char *fullPath, int l, const char *destPath);
+
 bool getDestFilePath(char *dest, char *src, char *destDirName);
 void generateFinalSite(Arena *arena, Section *root, char *destDirName);
 
