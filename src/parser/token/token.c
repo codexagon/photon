@@ -51,5 +51,13 @@ void tokenPrint(Token *t) {
 			printf("\"\n");
 			break;
 		}
+		case TKN_IMAGE: {
+			printf("{image \"");
+			slicePrint(t->imgSrc);
+			printf("\", \"");
+			slicePrint(t->text);
+			printf("\"\n");
+			break;
+		}
 	}
 }

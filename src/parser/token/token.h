@@ -9,15 +9,18 @@ typedef enum tokentype {
 	TKN_ITALIC,
 	TKN_CODESPAN,
 	TKN_HYPERLINK,
+	TKN_IMAGE,
 } TokenType;
 
 typedef struct token {
 	TokenType type;
 	struct token *next;
 
-	Slice text; // for bold, italic, codespan, hyperlink text
+	// for bold, italic, codespan, hyperlink text & image alt text
+	Slice text;
 	union {
 		Slice linkUrl;
+		Slice imgSrc;
 	};
 } Token;
 

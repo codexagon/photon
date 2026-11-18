@@ -75,6 +75,18 @@ int renderToken(Arena *arena, Token *token, String *output) {
 			written += url.len + 3;
 			break;
 		}
+		case TKN_IMAGE: {
+			Slice source = sliceMake(token->imgSrc.start, token->imgSrc.len);
+			Slice content = sliceMake(token->text.start + 2, token->text.len - 2);
+			stringAppend(arena, output, "<img src=\"");
+			stringAppendSlice(arena, output, source);
+			stringAppend(arena, output, "\" alt=\"");
+			writeEscapedChars(arena, output, &content);
+			stringAppend(arena, output, "\">");
+
+			written += source.len + 4;
+			break;
+		}
 	}
 
 	return written;

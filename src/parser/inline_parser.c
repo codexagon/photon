@@ -24,6 +24,10 @@ bool tokenizeSlice(Arena *arena, TokenList *list, Slice *slice) {
 				newToken = makeHyperlinkToken(arena, slice, &i, &isError);
 				break;
 			}
+			case '!': {
+				newToken = makeImageToken(arena, slice, &i, &isError);
+				break;
+			}
 			default: {
 				i++;
 			}
@@ -166,6 +170,61 @@ Token *makeHyperlinkToken(Arena *arena, Slice *s, size_t *i, bool *isError) {
 	}
 
 	t->linkUrl = sliceMake(s->start + urlStart, *i - urlStart);
+	(*i)++; // skip the ')'
+
+	return t;
+}
+
+Token *makeImageToken(Arena *arena, Slice *s, size_t *i, bool *isError) {
+	Token *t = tokenMake(arena, TKN_IMAGE);
+	if (!t) {
+		emitError("parser", "couldn't create token");
+		*isError = true;
+		return NULL;
+	}
+
+	size_t initial = *i;
+
+	(*i)++; // skip the '!'
+	if (s->start[*i] != '[') {
+		*isError = false;
+		*i = initial + 1;
+		return NULL;
+	}
+	(*i)++; // skip the '['
+
+	while (*i < s->len && s->start[*i] != ']') {
+		(*i)++;
+	}
+
+	if (*i >= s->len) {
+		*isError = false;
+		*i = initial + 1;
+		return NULL;
+	}
+
+	t->text = sliceMake(s->start + initial, *i - initial);
+
+	(*i)++; // skip the ']'
+	if (s->start[*i] != '(') {
+		*isError = false;
+		*i = initial + 1;
+		return NULL;
+	}
+
+	(*i)++; // skip the '('
+	size_t pathStart = *i;
+	while (*i < s->len && s->start[*i] != ')') {
+		(*i)++;
+	}
+
+	if (*i >= s->len) {
+		*isError = false;
+		*i = initial + 1;
+		return NULL;
+	}
+
+	t->imgSrc = sliceMake(s->start + pathStart, *i - pathStart);
 	(*i)++; // skip the ')'
 
 	return t;
