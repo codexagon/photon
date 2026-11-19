@@ -41,12 +41,13 @@ void emitInfo(const char *type, const char *fmt, ...) {
 }
 
 int main(int argc, char *argv[]) {
-	if (argc < 1) {
-		emitError("usage", "%s [dest-dir]", argv[0]);
+	if (argc < 2) {
+		emitError("usage", "%s <src-dir> [dest-dir]", argv[0]);
 		return -1;
 	}
 
-	char *destDirName = argc >= 2 ? argv[1] : "dest/";
+	char *srcDirName = argv[1];
+	char *destDirName = argc >= 3 ? argv[2] : "dest";
 
 	Arena *arena = arenaCreate(1024 * 1024 * 1024); // 1 GB
 	if (!arena) {
@@ -55,7 +56,7 @@ int main(int argc, char *argv[]) {
 	}
 	emitInfo(NULL, "Created site arena");
 
-	Section *root = generateSiteIR(arena, "content/", destDirName);
+	Section *root = generateSiteIR(arena, srcDirName, destDirName);
 	if (!root) {
 		return 2;
 	}
