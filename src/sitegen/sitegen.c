@@ -98,14 +98,14 @@ bool generateRecursive(Arena *arena, Section *root, const char *path,
 		}
 
 		// store full path + current file/dir name, use for both cases
-		int fullPathSize = snprintf(NULL, 0, "%s%s", path, entry->d_name) + 1;
+		int fullPathSize = snprintf(NULL, 0, "%s/%s", path, entry->d_name) + 1;
 		char *fullPath = arenaAlloc(arena, fullPathSize * sizeof(char));
 		if (!fullPath) {
 			emitError("sitegen", "couldn't allocate buffer for full file/dir path");
 			closedir(cdir);
 			return false;
 		}
-		snprintf(fullPath, fullPathSize, "%s%s", path, entry->d_name);
+		snprintf(fullPath, fullPathSize, "%s/%s", path, entry->d_name);
 
 		switch (entry->d_type) {
 			case DT_REG: {
@@ -180,18 +180,18 @@ bool makeSiteSection(Arena *arena, Section *root, char *fullPath, int l,
 
 	// create the dest dir for this dir
 	char *name = strrchr(fullPath, '/') + 1;
-	int n = snprintf(NULL, 0, "%s%s/", destPath, name) + 1;
+	int n = snprintf(NULL, 0, "%s/%s", destPath, name) + 1;
 	char destDir[n];
-	snprintf(destDir, n, "%s%s/", destPath, name);
+	snprintf(destDir, n, "%s/%s", destPath, name);
 
 	if (!createDir(destDir)) {
 		emitError("generation", "couldn't create dest directory");
 		return false;
 	}
 
-	n = snprintf(NULL, 0, "%s/", fullPath) + 1;
+	n = snprintf(NULL, 0, "%s", fullPath) + 1;
 	char path[n];
-	snprintf(path, sizeof(path), "%s/", fullPath);
+	snprintf(path, sizeof(path), "%s", fullPath);
 	if (!generateRecursive(arena, newSection, path, destDir)) {
 		return false;
 	}
@@ -201,7 +201,7 @@ bool makeSiteSection(Arena *arena, Section *root, char *fullPath, int l,
 
 Section *generateSiteIR(Arena *arena, const char *path, char *destDirName) {
 	Section *root = sectionCreate(arena, NULL);
-	root->path = sliceMake("content", 7);
+	root->path = sliceMake(path, strlen(path));
 	if (!createDir(destDirName)) {
 		emitError("sitegen", "couldn't create dest directory");
 		return NULL;
