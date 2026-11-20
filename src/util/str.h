@@ -50,11 +50,11 @@ bool stringAppendChar(Arena *arena, String *str, char c);
 	(stringAppend((arena), (str), "%.*s", (int)(slice).len, (slice).start))
 
 #define stringEqual(a, b)                                                                \
-	(((a).start && (b).start) && ((a).len == (b).len) &&                                   \
-	 (memcmp((a).start, (b).start, (a).len) == 0))
+	(((a).buf && (b).buf) && ((a).len == (b).len) &&                                       \
+	 (memcmp((a).start, (b).buf, (a).len) == 0))
 
 #define stringNull(s) ((s).buf == NULL || (s).cap == 0)
 
-#define stringPrint(s) printf("%s", (s).start)
+#define stringPrint(s) printf("%s", (s).buf)
 
 #endif
