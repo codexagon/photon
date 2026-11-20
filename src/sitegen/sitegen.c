@@ -155,9 +155,9 @@ bool makeSitePage(Arena *arena, Section *root, char *fullPath, int l,
 	// create the dest dir for this file if its name isn't root.md
 	Slice name = newPage->name;
 	if (!sliceEqual(name, sliceMake("root", 4))) {
-		int n = snprintf(NULL, 0, "%s%.*s", destPath, (int)name.len, name.start) + 1;
+		int n = snprintf(NULL, 0, "%s/%.*s", destPath, (int)name.len, name.start) + 1;
 		char destDir[n];
-		snprintf(destDir, n, "%s%.*s", destPath, (int)name.len, name.start);
+		snprintf(destDir, n, "%s/%.*s", destPath, (int)name.len, name.start);
 
 		if (!createDir(destDir)) {
 			emitError("generation", "couldn't create dest directory");
@@ -257,8 +257,8 @@ bool getDestFilePath(char *dest, char *src, char *destDirName) {
 	}
 
 	// assumes dest is zeroed out initially
-	strcat(dest, destDirName);
-	int idx = strlen(destDirName);
+	sprintf(dest, "%s/", destDirName);
+	int idx = strlen(destDirName) + 1;
 	char *s = start;
 	while (s < name) {
 		dest[idx++] = *s++;
